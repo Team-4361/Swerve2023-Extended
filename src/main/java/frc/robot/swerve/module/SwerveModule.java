@@ -1,5 +1,8 @@
 package frc.robot.swerve.module;
 
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.SparkMaxPIDController;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -16,12 +19,16 @@ import frc.robot.util.math.Velocity;
  */
 public class SwerveModule {
     private final SwerveModuleConfiguration config;
+    private SparkMaxPIDController driveController;
+    private SparkMaxPIDController turnController;
 
     /**
      * Creates a new {@link SwerveModule} instance, using the specified parameters.
      */
     public SwerveModule(SwerveModuleConfiguration conf) {
         config = conf;
+        driveController = conf.getDriveMotor().getPIDController();
+        turnController = conf.getTurnMotor().getPIDController();
     }
 
     public Velocity getVelocity() {
@@ -52,17 +59,20 @@ public class SwerveModule {
     public void setState(SwerveModuleState state, boolean isClosedLoop) {
         state = SwerveModuleState.optimize(state, getTurnAngle());
 
-        double turnPower = config.getTurnController().calculate(
+        double turnPower = MathUtil.clamp(config.getTurnController().calculate(
                 getTurnAngle().getDegrees(),
                 state.angle.getDegrees()
-        );
+        ), -1, 1);
 
         double drivePower;
         if (isClosedLoop) {
-            drivePower = config.getDriveController().calculate(
-                    getVelocity().toMPS(),
-                    state.speedMetersPerSecond
-            );
+
+            // calculate the required RPM for MPS
+            //drivePower = MathUtil.clamp(config.getDriveController().calculate(
+            //        getVelocity().toMPS(),
+            //        state.speedMetersPerSecond
+            //), -1, 1);
+            driveController.setReference(Velocity.fromMPS(state.speedMetersPerSecond).to
         } else {
             drivePower = Velocity.fromMPS(state.speedMetersPerSecond)
                     .toMotorPower(config.getMaxVelocity());

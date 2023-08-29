@@ -3,6 +3,7 @@ package frc.robot;
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
+import com.revrobotics.SparkMaxPIDController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -53,8 +54,8 @@ public class Constants {
                 AngularVelocity.fromRPM(4000)
         );
 
-        public static final PIDController DRIVE_CONTROLLER = new PIDController(5, 0, 0.01);
-        public static final PIDController TURN_CONTROLLER = new PIDController(5, 0, 0.01);
+        public static final PIDController DRIVE_CONTROLLER = new PIDController(0.01, 0, 0);
+        public static final PIDController TURN_CONTROLLER = new PIDController(0.02, 0, 0);
 
         public static final SwerveModuleConfiguration FL_CONFIG = new SwerveModuleConfiguration(
                 1,
