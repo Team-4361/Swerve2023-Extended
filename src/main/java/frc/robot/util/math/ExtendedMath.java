@@ -26,6 +26,14 @@ public class ExtendedMath {
         return output;
     }
 
+    public static double deadband(double value) {
+        return (Math.abs(value) <= 0.05) ? 0 : value;
+    }
+
+    public static double deadband(double value, double min) {
+        return (Math.abs(value) <= min) ? 0 : value;
+    }
+
     public static double min(GetterValue... values) {
         if (values == null || values.length == 0)
             return 0;

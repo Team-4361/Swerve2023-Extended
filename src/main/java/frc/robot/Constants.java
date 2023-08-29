@@ -8,13 +8,12 @@ import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.SPI;
-import edu.wpi.first.wpilibj.drive.RobotDriveBase;
 import frc.robot.swerve.chassis.SwerveChassisConfiguration;
+import frc.robot.swerve.joystick.DriveHIDConfiguration;
+import frc.robot.swerve.joystick.SmoothThrottleMap;
 import frc.robot.util.math.*;
 import frc.robot.swerve.module.SwerveModuleConfiguration;
 import frc.robot.swerve.module.SwerveModuleSide;
-import frc.robot.util.pid.PresetGroup;
-import frc.robot.util.pid.PresetList;
 import frc.robot.util.pid.PresetMap;
 import frc.robot.util.pid.PresetMapGroup;
 import frc.robot.util.pid.TunablePIDController;
@@ -24,22 +23,40 @@ import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 
 public class Constants {
-    public static class Chassis {
-        public static GearRatio DRIVE_RATIO = GearRatio.fromRatio(6.86);
-        public static GearRatio TURN_RATIO = GearRatio.fromRatio(12.8);
-        public static Distance WHEEL_SIZE = Distance.fromInches(4);
-        public static Distance SIDE_LENGTH = Distance.fromInches(26);
+    public static class Global {
+        public static boolean TEST_MODE = true;
+    }
 
-        public static SwerveVelocities MAX_VELOCITY = new SwerveVelocities(
+    public static class Control {
+        public static final int LEFT_STICK_ID = 0;
+        public static final int RIGHT_STICK_ID = 1;
+        public static final int XBOX_CONTROLLER_ID = 2;
+
+        public static final DriveHIDConfiguration STICK_CONFIG = new DriveHIDConfiguration(
+                new SmoothThrottleMap(),
+                false,
+                true,
+                true,
+                true
+        );
+    }
+
+    public static class Chassis {
+        public static final GearRatio DRIVE_RATIO = GearRatio.fromRatio(6.86);
+        public static final GearRatio TURN_RATIO = GearRatio.fromRatio(12.8);
+        public static final Distance WHEEL_SIZE = Distance.fromInches(4);
+        public static final Distance SIDE_LENGTH = Distance.fromInches(26);
+
+        public static final SwerveVelocities MAX_VELOCITY = new SwerveVelocities(
                 Velocity.fromMPS(4.4),
                 Velocity.fromMPS(4.4),
                 AngularVelocity.fromRPM(4000)
         );
 
-        public static PIDController DRIVE_CONTROLLER = new PIDController(5, 0, 0.01);
-        public static PIDController TURN_CONTROLLER = new PIDController(5, 0, 0.01);
+        public static final PIDController DRIVE_CONTROLLER = new PIDController(5, 0, 0.01);
+        public static final PIDController TURN_CONTROLLER = new PIDController(5, 0, 0.01);
 
-        public static SwerveModuleConfiguration FL_CONFIG = new SwerveModuleConfiguration(
+        public static final SwerveModuleConfiguration FL_CONFIG = new SwerveModuleConfiguration(
                 1,
                 2,
                 0,
@@ -53,7 +70,7 @@ public class Constants {
                 MAX_VELOCITY
         );
 
-        public static SwerveModuleConfiguration FR_CONFIG = new SwerveModuleConfiguration(
+        public static final SwerveModuleConfiguration FR_CONFIG = new SwerveModuleConfiguration(
                 3,
                 4,
                 1,
@@ -67,7 +84,7 @@ public class Constants {
                 MAX_VELOCITY
         );
 
-        public static SwerveModuleConfiguration BL_CONFIG = new SwerveModuleConfiguration(
+        public static final SwerveModuleConfiguration BL_CONFIG = new SwerveModuleConfiguration(
                 5,
                 6,
                 2,
@@ -81,7 +98,7 @@ public class Constants {
                 MAX_VELOCITY
         );
 
-        public static SwerveModuleConfiguration BR_CONFIG = new SwerveModuleConfiguration(
+        public static final SwerveModuleConfiguration BR_CONFIG = new SwerveModuleConfiguration(
                 7,
                 8,
                 3,
@@ -95,7 +112,7 @@ public class Constants {
                 MAX_VELOCITY
         );
 
-        public static SwerveChassisConfiguration CHASSIS_CONFIG = new SwerveChassisConfiguration(
+        public static final SwerveChassisConfiguration CHASSIS_CONFIG = new SwerveChassisConfiguration(
                 SIDE_LENGTH,
                 new AHRS(SPI.Port.kMXP),
                 FL_CONFIG,
@@ -107,18 +124,18 @@ public class Constants {
     }
 
     public static class VacuumValues {
-        public static int[] VACUUM_MOTOR_IDS = new int[]{20, 16, 13, 11};
-        public static double VACUUM_PUMP_SPEED = 0.45;
-        public static MotorType VACUUM_MOTOR_TYPE = MotorType.kBrushed;
+        public static final int[] VACUUM_MOTOR_IDS = new int[]{20, 16, 13, 11};
+        public static final double VACUUM_PUMP_SPEED = 0.45;
+        public static final MotorType VACUUM_MOTOR_TYPE = MotorType.kBrushed;
 
-        public static int[][] VACUUM_SOLENOIDS = new int[][]{
+        public static final int[][] VACUUM_SOLENOIDS = new int[][]{
                 new int[]{1, 7}, // PDH 0
                 new int[]{3, 4} // PDH 1
         };
 
-        public static int[] VACUUM_SENSORS = new int[]{0, 1, 2, 3};
+        public static final int[] VACUUM_SENSORS = new int[]{0, 1, 2, 3};
 
-        public static double VACUUM_THRESHOLD = 1;
+        public static final double VACUUM_THRESHOLD = 1;
 
     }
 

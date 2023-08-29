@@ -7,101 +7,54 @@ import frc.robot.util.math.AngularVelocity;
 import frc.robot.util.math.Velocity;
 
 public class DriveJoystick extends CommandJoystick implements DriveController {
-    private JoystickThrottleMap throttleMap;
-    private boolean tcsEnabled;
+    private DriveHIDConfiguration config;
 
-    private boolean sideAxisInverted;
-    private boolean forwardAxisInverted;
-    private boolean twistAxisInverted;
 
-    public DriveJoystick setThrottleMap(JoystickThrottleMap map) {
-        this.throttleMap = map;
-        return this;
-    }
-
-    public DriveJoystick setTCSEnabled(boolean tcsEnabled) {
-        this.tcsEnabled = tcsEnabled;
-        return this;
-    }
-
-    public DriveJoystick setForwardAxisInverted(boolean inverted) {
-        this.forwardAxisInverted = inverted;
-        return this;
-    }
-
-    public DriveJoystick setSideAxisInverted(boolean inverted) {
-        this.sideAxisInverted = inverted;
-        return this;
-    }
-
-    public DriveJoystick setTwistAxisInverted(boolean inverted) {
-        this.twistAxisInverted = inverted;
-        return this;
-    }
-
-    public JoystickThrottleMap getThrottleMap() { return this.throttleMap; }
-    public boolean isTCSEnabled() { return this.tcsEnabled; }
-    public boolean isForwardAxisInverted() { return this.forwardAxisInverted; }
-    public boolean isSideAxisInverted() { return this.sideAxisInverted; }
-    public boolean isTwistAxisInverted() { return this.twistAxisInverted; }
-
-    public DriveJoystick(int port, boolean forwardInverted, boolean sideInverted, boolean twistInverted, JoystickThrottleMap throttleMap, boolean tcsEnabled) {
+    public DriveJoystick(int port, DriveHIDConfiguration config) {
         super(port);
-        this.forwardAxisInverted = forwardInverted;
-        this.sideAxisInverted = sideInverted;
-        this.twistAxisInverted = twistInverted;
-        this.throttleMap = throttleMap;
-        this.tcsEnabled = tcsEnabled;
-    }
-
-    public DriveJoystick(int port, JoystickThrottleMap throttleMap, boolean tcsEnabled) {
-        this(port, true, true, true, throttleMap, tcsEnabled);
-    }
-
-    public DriveJoystick(int port) {
-        this(port, true, true, true, new LinearThrottleMap(), true);
+        this.config = config;
     }
 
     @Override
     public double getX() {
         double val = super.getX();
-        val = throttleMap.getX(val);
+        val = config.getThrottleMap().getX(val);
 
-        if (tcsEnabled) {
-            SlewRateLimiter limiter = throttleMap.getRateLimiter();
+        if (config.isTCSEnabled()) {
+            SlewRateLimiter limiter = config.getThrottleMap().getRateLimiter();
             if (limiter != null)
                 val = limiter.calculate(val);
         }
 
-        return (sideAxisInverted) ? -val : val;
+        return (config.isSideAxisInverted()) ? -val : val;
     }
 
     @Override
     public double getY() {
         double val = super.getY();
-        val = throttleMap.getY(val);
+        val = config.getThrottleMap().getY(val);
 
-        if (tcsEnabled) {
-            SlewRateLimiter limiter = throttleMap.getRateLimiter();
+        if (config.isTCSEnabled()) {
+            SlewRateLimiter limiter = config.getThrottleMap().getRateLimiter();
             if (limiter != null)
                 val = limiter.calculate(val);
         }
 
-        return (forwardAxisInverted) ? -val : val;
+        return (config.isForwardAxisInverted()) ? -val : val;
     }
 
     @Override
     public double getTwist() {
         double val = super.getTwist();
-        val = throttleMap.getTwist(val);
+        val = config.getThrottleMap().getTwist(val);
 
-        if (tcsEnabled) {
-            SlewRateLimiter limiter = throttleMap.getRateLimiter();
+        if (config.isTCSEnabled()) {
+            SlewRateLimiter limiter = config.getThrottleMap().getRateLimiter();
             if (limiter != null)
                 val = limiter.calculate(val);
         }
 
-        return (twistAxisInverted) ? -val : val;
+        return (config.isTwistAxisInverted()) ? -val : val;
     }
 
     @Override

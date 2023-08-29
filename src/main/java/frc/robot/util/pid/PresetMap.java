@@ -3,7 +3,7 @@ package frc.robot.util.pid;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
-import frc.robot.commands.auto.TimeoutCommand;
+import frc.robot.util.math.TimeoutCommand;
 
 import java.util.*;
 import java.util.function.Supplier;

@@ -8,8 +8,6 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static frc.robot.Constants.TEST_MODE;
-
 public class PresetMapGroup extends HashMap<String, PresetMap> {
     private String index = "";
     private String[] defaultSyncOrder;

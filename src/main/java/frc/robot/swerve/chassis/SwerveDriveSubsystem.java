@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.*;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.swerve.joystick.DriveJoystick;
 import frc.robot.swerve.joystick.DriveXboxController;
@@ -36,26 +37,23 @@ public class SwerveDriveSubsystem extends SubsystemBase {
     private boolean fieldOriented = true;
     private boolean closedLoop = true;
 
-    public void setFieldOriented(boolean value){
-        fieldOriented = value;
-    }
-    public void setClosedLoop(boolean value){
-        closedLoop = value;
-    }
-    public boolean isFieldOriented(){
-        return fieldOriented;
-    }
-    public boolean isClosedLoop(){
-        return closedLoop;
+    public SwerveDriveSubsystem setFieldOriented(boolean fieldOriented) {
+        this.fieldOriented = fieldOriented;
+        return this;
     }
 
-    public void toggleFieldOriented(){
-        fieldOriented = !fieldOriented;
-    }
-    public void toggleClosedLoop(){
-        closedLoop = !closedLoop;
+    public SwerveDriveSubsystem setClosedLoop(boolean closedLoop) {
+        this.closedLoop = closedLoop;
+        return this;
     }
 
+    public boolean isFieldOriented() { return this.fieldOriented; }
+    public boolean isClosedLoop() { return this.closedLoop; }
+
+    public Command toggleFieldOrientedCommand() { return Commands.runOnce(() -> fieldOriented = !fieldOriented); }
+    public Command toggleClosedLoopCommand() { return Commands.runOnce(() -> closedLoop = !closedLoop); }
+    public Command resetGyroCommand() { return Commands.runOnce(this::resetGyro); }
+    public Command resetPositionCommand() { return Commands.runOnce(this::resetPosition); }
 
     public SwerveDriveSubsystem(SwerveChassisConfiguration config) {
         double sideLengthMeters = config.getSideLength().toMeters();

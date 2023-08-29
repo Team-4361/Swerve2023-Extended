@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
-import static frc.robot.Constants.TEST_MODE;
+import static frc.robot.Constants.Global.TEST_MODE;
 
 public class PresetListGroup extends HashMap<String, PresetList> {
     private int index = 0;

@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import static frc.robot.Constants.TEST_MODE;
+import static frc.robot.Constants.Global.TEST_MODE;
 
 public class PresetList extends ArrayList<Double> {
     private int index = 0;

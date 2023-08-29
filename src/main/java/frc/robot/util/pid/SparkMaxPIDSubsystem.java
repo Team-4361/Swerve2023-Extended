@@ -120,16 +120,9 @@ public class SparkMaxPIDSubsystem extends SubsystemBase {
 
     public SparkMaxPIDSubsystem setPresetMap(PresetMap list, Supplier<Double> presetSupplier) {
         this.presetSupplier = presetSupplier;
-
         list.addListener((value) -> updateTarget());
         return this;
     }
-
-    public SparkMaxPIDSubsystem setContInput(double start, double end) {
-        controller.enableContinuousInput(start, end);
-        return this;
-    }
-
 
     /** @return The current {@link Encoder} position of the {@link CANSparkMax} motor. */
     public double getRotation() { return encoder.getPosition(); }
