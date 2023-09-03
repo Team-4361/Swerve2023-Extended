@@ -8,12 +8,10 @@ import frc.robot.util.math.TimeoutCommand;
 import java.util.*;
 import java.util.function.Supplier;
 
-public class PresetMap extends LinkedHashMap<String, Double> {
-    private String index = "";
-    private String name = "";
-    private boolean dashAdded = false;
+public class PresetMap<T> extends LinkedHashMap<String, T> {
+    private String index;
 
-    private ArrayList<PresetEventListener> listeners;
+    private ArrayList<PresetEventListener<T>> listeners;
     private Supplier<Boolean> targetSupplier;
 
     public PresetMap() {
@@ -22,7 +20,7 @@ public class PresetMap extends LinkedHashMap<String, Double> {
         this.targetSupplier = () -> true;
     }
 
-    public PresetMap(Map<String, Double> entries) {
+    public PresetMap(Map<String, T> entries) {
         super();
         this.listeners = new ArrayList<>();
         this.targetSupplier = () -> true;
@@ -32,17 +30,16 @@ public class PresetMap extends LinkedHashMap<String, Double> {
 
     public boolean reachedTarget() { return targetSupplier.get(); }
 
-
-    public double getPreset(String name) {
+    public T getPreset(String name) {
         if (name.equals("")) {
-            Optional<Map.Entry<String, Double>> o = entrySet().stream().findFirst();
-            return o.isPresent() ? o.get().getValue() : 0;
+            Optional<Map.Entry<String, T>> o = entrySet().stream().findFirst();
+            return o.map(Map.Entry::getValue).orElse(null);
         } else {
             return get(name);
         }
     }
 
-    public double getCurrentPreset() { return getPreset(index); }
+    public T getCurrentPreset() { return getPreset(index); }
 
     public Command setPresetCommand(String name) {
         return Commands.runOnce(() -> setPreset(name));
@@ -57,18 +54,17 @@ public class PresetMap extends LinkedHashMap<String, Double> {
         ), 1.5);
     }
 
-    public PresetMap setPreset(String name) {
+    public void setPreset(String name) {
         this.index = name;
         updateListener();
-        return this;
     }
 
     private void updateListener() {
         listeners.forEach(((listener) -> listener.onPresetAdjust(getPreset(index))));
     }
 
-    public PresetMap addListener(PresetEventListener listener) {
+    public void addListener(PresetEventListener<T> listener) {
         listeners.add(listener);
-        return this;
     }
+
 }

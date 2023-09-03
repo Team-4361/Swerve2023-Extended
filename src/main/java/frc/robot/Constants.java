@@ -174,7 +174,7 @@ public class Constants {
         public static final String MANUAL_STATION_NAME = "MANUAL_STATION_INDEX";
         public static final String GRAB_FLOOR_CUBE_NAME = "GRAB_FLOOR_CUBE_INDEX";
 
-        public static final PresetMap ROTATION_PRESETS = new PresetMap(
+        public static final PresetMap<Double> ROTATION_PRESETS = new PresetMap<>(
                 ofEntries(
                         entry(ZERO_POSITION_NAME, 0.0),
                         entry(HUMAN_STATION_NAME, -45.0),
@@ -187,7 +187,7 @@ public class Constants {
                 )
         );
 
-        public static final PresetMap EXTENSION_PRESETS = new PresetMap(
+        public static final PresetMap<Double> EXTENSION_PRESETS = new PresetMap<>(
                 ofEntries(
                         entry(ZERO_POSITION_NAME, 0.0),
                         entry(HUMAN_STATION_NAME, 17.365),

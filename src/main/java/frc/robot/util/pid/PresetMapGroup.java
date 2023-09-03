@@ -5,38 +5,37 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
-public class PresetMapGroup extends HashMap<String, PresetMap> {
+public class PresetMapGroup<T> extends HashMap<String, PresetMap<T>> {
     private String index = "";
-    private String[] defaultSyncOrder;
-    public PresetMapGroup addPreset(String name, PresetMap presetMap) {
+    private String[] sequence;
+
+    public PresetMapGroup<T> addPreset(String name, PresetMap<T> presetMap) {
         this.put(name, presetMap);
         return this;
     }
 
-    public PresetMapGroup setDefaultSyncOrder(String... order) {
-        this.defaultSyncOrder = order;
+    public PresetMapGroup<T> setSequenceOrder(String... order) {
+        this.sequence = order;
         return this;
     }
+
     public Command setPresetCommand(String name) {
         return Commands.runOnce(() -> setPreset(name));
     }
 
-    public Double getCurrentPreset(String name) {
+    public T getCurrentPreset(String name) {
         return get(name).getCurrentPreset();
     }
 
-    public PresetMapGroup setPreset(String name) {
+    public void setPreset(String name) {
         this.index = name;
         this.forEach((n, preset) -> preset.setPreset(name));
-        new PrintCommand("SETTING PRESET TO " + index).schedule();
-        return this;
     }
 
     public Command setPresetSyncCommand(String name) {
-        return setPresetSyncCommand(name, defaultSyncOrder);
+        return setPresetSyncCommand(name, sequence);
     }
 
     public Command setPresetSyncCommand(String name, String[] order) {
