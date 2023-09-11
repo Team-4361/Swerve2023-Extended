@@ -1,7 +1,6 @@
 package frc.robot.util.pid;
 
 import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.util.math.GearRatio;
 
@@ -19,9 +18,8 @@ public class SparkMaxAngledPIDSubsystem extends SparkMaxPIDSubsystem {
     }
 
     @Override
-    public SparkMaxAngledPIDSubsystem setTolerance(double angle) {
+    public void setTolerance(double angle) {
         super.setTolerance(angle);
-        return this;
     }
 
     @Override

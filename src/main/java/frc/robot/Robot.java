@@ -8,14 +8,16 @@ package frc.robot;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.commands.swervedrive.drivebase.TeleopDrive;
 import frc.robot.subsystems.climber.ClimberArmSubsystem;
 import frc.robot.subsystems.climber.ClimberWristSubsystem;
+import frc.robot.subsystems.swerve.SwerveSubsystem;
 import frc.robot.subsystems.vacuum.VacuumSubsystem;
-import frc.robot.swerve.chassis.SwerveDriveSubsystem;
+import frc.robot.swerve.telemetry.SwerveDriveTelemetry;
 
-import static frc.robot.Constants.Chassis.CHASSIS_CONFIG;
+
+import static frc.robot.Constants.Chassis.*;
 import static frc.robot.util.math.ExtendedMath.deadband;
 
 /**
@@ -25,9 +27,7 @@ import static frc.robot.util.math.ExtendedMath.deadband;
  * project.
  */
 public class Robot extends TimedRobot {
-    private RobotContainer robotContainer;
-
-    public static SwerveDriveSubsystem swerveDrive;
+    public static SwerveSubsystem swerveDrive;
     public static ClimberArmSubsystem arm;
     public static ClimberWristSubsystem wrist;
     public static VacuumSubsystem pump;
@@ -44,14 +44,16 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void robotInit() {
-        swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
+        swerveDrive = new SwerveSubsystem(DRIVE_CONFIG, CONTROLLER_CONFIG);
         arm = new ClimberArmSubsystem();
         wrist = new ClimberWristSubsystem();
         pump = new VacuumSubsystem();
         power = new PowerDistribution();
 
+        SwerveDriveTelemetry.verbosity = SwerveDriveTelemetry.TelemetryVerbosity.HIGH;
+
         // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
-        robotContainer = new RobotContainer();
+        new RobotContainer();
     }
 
     /**
@@ -72,7 +74,20 @@ public class Robot extends TimedRobot {
 
     @Override public void disabledInit() { CommandScheduler.getInstance().cancelAll(); }
     @Override public void testInit() { CommandScheduler.getInstance().cancelAll(); }
-    @Override public void teleopInit() { CommandScheduler.getInstance().cancelAll(); }
+
+    @Override
+    public void teleopInit() {
+        CommandScheduler.getInstance().cancelAll();
+
+        new TeleopDrive(
+                () -> -RobotContainer.xbox.getLeftY(),
+                () -> -RobotContainer.xbox.getLeftX(),
+                () -> -RobotContainer.xbox.getRightX(),
+                () -> true,
+                false,
+                true
+        ).schedule();
+    }
 
     /**
      * This method is called periodically during operator control.

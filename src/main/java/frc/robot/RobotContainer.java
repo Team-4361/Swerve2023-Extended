@@ -6,11 +6,13 @@
 package frc.robot;
 
 
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.swerve.joystick.DriveJoystick;
-import frc.robot.swerve.joystick.DriveXboxController;
+import frc.robot.util.joystick.DriveJoystick;
+import frc.robot.util.joystick.DriveXboxController;
 
 import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.Constants.Control.*;
@@ -22,9 +24,9 @@ import static frc.robot.Constants.Control.*;
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-    private final DriveJoystick xyStick = new DriveJoystick(LEFT_STICK_ID, STICK_CONFIG);
-    private final DriveJoystick zStick = new DriveJoystick(RIGHT_STICK_ID, STICK_CONFIG);
-    public static final DriveXboxController xbox = new DriveXboxController(XBOX_CONTROLLER_ID, STICK_CONFIG);
+   // public static final DriveJoystick xyStick = new DriveJoystick(LEFT_STICK_ID);
+   // public static final DriveJoystick zStick = new DriveJoystick(RIGHT_STICK_ID);
+    public static final DriveXboxController xbox = new DriveXboxController(XBOX_CONTROLLER_ID);
 
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -33,13 +35,13 @@ public class RobotContainer {
         // Configure the trigger bindings
         configureBindings();
 
-        Robot.swerveDrive.setDefaultCommand(Robot.swerveDrive.run(() ->  {
-            Robot.swerveDrive.drive(xyStick, zStick);
-        }));
-
-        if (Robot.wrist.getTargetRotation() > 500) {
-            Robot.wrist.setTarget(0);
-        }
+        Robot.swerveDrive.setDefaultCommand(Robot.swerveDrive.runEnd(() -> {
+            Robot.swerveDrive.drive(
+                    Robot.swerveDrive.getTargetPose(xbox),
+                    true,
+                    false
+            );
+        }, () -> Robot.swerveDrive.stop()));
     }
 
     /**
@@ -52,8 +54,7 @@ public class RobotContainer {
      * joysticks}.
      */
     private void configureBindings() {
-        xyStick.button(8).onTrue(Robot.swerveDrive.toggleFieldOrientedCommand());
-        xyStick.button(12).onTrue(Robot.swerveDrive.resetGyroCommand());
+        //xyStick.button(12).onTrue(Commands.runOnce(() -> Robot.swerveDrive.zeroGyro()));
 
         ///////////////////////////////// XBOX CONTROLS
 

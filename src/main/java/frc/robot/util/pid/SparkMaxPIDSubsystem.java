@@ -74,11 +74,9 @@ public class SparkMaxPIDSubsystem extends SubsystemBase {
      * will prevent the motor from extending any further without a bypass enabled.
      *
      * @param limit The minimum allowed value for extension, unit needs to match {@link #getRotation()}
-     * @return The {@link SparkMaxPIDSubsystem} instance.
      */
-    public SparkMaxPIDSubsystem setForwardLimit(double limit) {
+    public void setForwardLimit(double limit) {
         this.forwardLimit = limit;
-        return this;
     }
 
     /**
@@ -86,11 +84,9 @@ public class SparkMaxPIDSubsystem extends SubsystemBase {
      * soft-limit will be applicable.
      *
      * @param supplier A boolean {@link Supplier} for limit bypass determination.
-     * @return The {@link SparkMaxPIDSubsystem} instance.
      */
-    public SparkMaxPIDSubsystem setLimitBypassSupplier(Supplier<Boolean> supplier) {
+    public void setLimitBypassSupplier(Supplier<Boolean> supplier) {
         this.limitBypassSupplier = supplier;
-        return this;
     }
 
     /** @return The minimum allowed reverse value. Unit matches {@link #getRotation()} */
@@ -104,24 +100,22 @@ public class SparkMaxPIDSubsystem extends SubsystemBase {
 
     /**
      * Controls the option for enabling Dashboard control of presets.
+     *
      * @param dashEnabled A {@link Boolean} determining Dashboard control. Default is false.
-     * @return The {@link SparkMaxPIDSubsystem} instance.
      */
-    public SparkMaxPIDSubsystem enableDashboard(boolean dashEnabled) {
+    public void enableDashboard(boolean dashEnabled) {
         this.dashEnabled = dashEnabled;
-        return this;
     }
 
-    public SparkMaxPIDSubsystem setPresetMap(PresetList list, Supplier<Double> presetSupplier) {
+    public SparkMaxPIDSubsystem setPresetMap(PresetList<Double> list, Supplier<Double> presetSupplier) {
         this.presetSupplier = presetSupplier;
         list.addListener((value) -> updateTarget());
         return this;
     }
 
-    public SparkMaxPIDSubsystem setPresetMap(PresetMap list, Supplier<Double> presetSupplier) {
+    public void setPresetMap(PresetMap<Double> list, Supplier<Double> presetSupplier) {
         this.presetSupplier = presetSupplier;
         list.addListener((value) -> updateTarget());
-        return this;
     }
 
     /** @return The current {@link Encoder} position of the {@link CANSparkMax} motor. */
@@ -161,11 +155,9 @@ public class SparkMaxPIDSubsystem extends SubsystemBase {
      * the motor when the target is reached.
      *
      * @param rotations The amount of <b>rotations</b> for Tolerance.
-     * @return {@link SparkMaxPIDSubsystem}
      */
-    public SparkMaxPIDSubsystem setTolerance(double rotations) {
+    public void setTolerance(double rotations) {
         this.tolerance = rotations;
-        return this;
     }
 
     /**
@@ -190,7 +182,7 @@ public class SparkMaxPIDSubsystem extends SubsystemBase {
     }
 
     private double getLimitAdjustedTarget(double angle) {
-        // Do not perform any calculatiosn if the limit bypass supplier is true.
+        // Do not perform any calculations if the limit bypass supplier is true.
         if (limitBypassSupplier.get()) return angle;
 
         if (forwardLimit != Double.MAX_VALUE) {

@@ -2,12 +2,11 @@ package frc.robot.util.pid;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
-public class PresetMapGroup<T> extends HashMap<String, PresetMap<T>> {
+public class PresetMapGroup<T> extends LinkedHashMap<String, PresetMap<T>> {
     private String index = "";
     private String[] sequence;
 

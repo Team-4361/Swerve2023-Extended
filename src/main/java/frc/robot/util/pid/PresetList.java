@@ -1,31 +1,27 @@
 package frc.robot.util.pid;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.*;
 import frc.robot.commands.auto.TimeoutCommand;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
-import static frc.robot.Constants.Global.TEST_MODE;
-
-public class PresetList extends ArrayList<Double> {
+public class PresetList<T> extends ArrayList<T> {
     private int index = 0;
     private String name = "";
     private boolean dashAdded = false;
 
-    private final ArrayList<PresetEventListener> listeners = new ArrayList<>();
+    private final ArrayList<PresetEventListener<T>> listeners = new ArrayList<>();
     private Supplier<Boolean> targetReachedSupplier = () -> true;
 
-    public PresetList(Double... elements) {
+    @SafeVarargs
+    public PresetList(T... elements) {
         this.addAll(Arrays.asList(elements));
     }
 
-    public PresetList setTargetReachedSupplier(Supplier<Boolean> supplier) {
+    public PresetList<T> setTargetReachedSupplier(Supplier<Boolean> supplier) {
         this.targetReachedSupplier = supplier;
         return this;
     }
@@ -34,11 +30,11 @@ public class PresetList extends ArrayList<Double> {
         return targetReachedSupplier.get();
     }
 
-    public double getCurrentPreset() {
+    public T getCurrentPreset() {
         return getPreset(index);
     }
 
-    public double getPreset(int idx) {
+    public T getPreset(int idx) {
         return get(MathUtil.clamp(idx, 0, size()-1));
     }
 
@@ -55,17 +51,16 @@ public class PresetList extends ArrayList<Double> {
         ), 1.5);
     }
 
-    public PresetList setPreset(int index) {
+    public void setPreset(int index) {
         this.index = index;
         updateListener();
-        return this;
     }
 
     private void updateListener() {
         listeners.forEach(((listener) -> listener.onPresetAdjust(getPreset(index))));
     }
 
-    public PresetList nextPreset() {
+    public PresetList<T> nextPreset() {
         if (index+1 <= size()-1) {
             index++;
         }
@@ -73,7 +68,7 @@ public class PresetList extends ArrayList<Double> {
         return this;
     }
 
-    public PresetList prevPreset() {
+    public PresetList<T> prevPreset() {
         if (index-1 >= 0) {
             index--;
         }
@@ -86,6 +81,7 @@ public class PresetList extends ArrayList<Double> {
     }
 
     public void updateDashboard(String name) {
+        /*
         if (TEST_MODE) {
             assert !Objects.equals(name, "");
             this.name = name;
@@ -102,10 +98,10 @@ public class PresetList extends ArrayList<Double> {
                 }
             }
         }
+         */
     }
 
-    public PresetList addListener(PresetEventListener listener) {
+    public void addListener(PresetEventListener<T> listener) {
         listeners.add(listener);
-        return this;
     }
 }
