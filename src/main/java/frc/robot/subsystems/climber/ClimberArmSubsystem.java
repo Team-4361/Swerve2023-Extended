@@ -8,6 +8,7 @@ import frc.robot.util.pid.SparkMaxPIDSubsystem;
 
 import static frc.robot.Constants.ClimberArmValues.*;
 import static frc.robot.Constants.ClimberPresets.*;
+import static frc.robot.Robot.CLIMBER_PRESET_GROUP;
 
 public class ClimberArmSubsystem extends SubsystemBase {
     private final SparkMaxPIDSubsystem extension;

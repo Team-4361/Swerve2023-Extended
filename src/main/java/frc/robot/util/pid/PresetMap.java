@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.function.Supplier;
 
 public class PresetMap<T> extends LinkedHashMap<String, T> {
-    private String index;
+    private String index = "";
 
     private ArrayList<PresetEventListener<T>> listeners;
     private Supplier<Boolean> targetSupplier;

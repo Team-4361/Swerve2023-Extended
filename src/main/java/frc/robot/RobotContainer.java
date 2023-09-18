@@ -9,11 +9,12 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.swerve.joystick.DriveJoystick;
-import frc.robot.swerve.joystick.DriveXboxController;
+import frc.robot.util.joystick.DriveJoystick;
+import frc.robot.util.joystick.DriveXboxController;
 
 import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.Constants.Control.*;
+import static frc.robot.Robot.CLIMBER_PRESET_GROUP;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -22,9 +23,9 @@ import static frc.robot.Constants.Control.*;
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-    private final DriveJoystick xyStick = new DriveJoystick(LEFT_STICK_ID, STICK_CONFIG);
-    private final DriveJoystick zStick = new DriveJoystick(RIGHT_STICK_ID, STICK_CONFIG);
-    public static final DriveXboxController xbox = new DriveXboxController(XBOX_CONTROLLER_ID, STICK_CONFIG);
+    private final DriveJoystick xyStick = new DriveJoystick(LEFT_STICK_ID);
+    private final DriveJoystick zStick = new DriveJoystick(RIGHT_STICK_ID);
+    public static final DriveXboxController xbox = new DriveXboxController(XBOX_CONTROLLER_ID);
 
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.

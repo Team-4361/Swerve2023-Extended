@@ -3,8 +3,8 @@ package frc.robot.util.math;
 import edu.wpi.first.math.geometry.Rotation2d;
 
 public class GearRatio {
-
     private final double ratio;
+
     public GearRatio(double ratio) {
         this.ratio = ratio;
     }
@@ -32,6 +32,13 @@ public class GearRatio {
 
         // convert motor rotations to degrees
         return Velocity.fromMPS(radius * (Math.PI * 2) * (adjustedRPM / 60));
+    }
+
+    public double getMotorRPM(Velocity velocity, Distance wheelDiameter) {
+        double radius = (wheelDiameter.toMeters() / 2);
+
+        double motorRPM = (60 / (Math.PI * 2) * radius) * velocity.toMPS();
+        return angleToMotorRotations(Rotation2d.fromRotations(motorRPM))
     }
 
     public Distance getWheelDistance(double motorRotations, Distance wheelDiameter) {

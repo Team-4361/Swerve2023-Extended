@@ -12,10 +12,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.climber.ClimberArmSubsystem;
 import frc.robot.subsystems.climber.ClimberWristSubsystem;
+import frc.robot.subsystems.swerve.SwerveDriveSubsystem;
 import frc.robot.subsystems.vacuum.VacuumSubsystem;
-import frc.robot.swerve.chassis.SwerveDriveSubsystem;
+import frc.robot.util.pid.PresetMapGroup;
 
-import static frc.robot.Constants.Chassis.CHASSIS_CONFIG;
+import java.lang.management.ClassLoadingMXBean;
+
+import static frc.robot.Constants.Chassis.*;
+import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.util.math.ExtendedMath.deadband;
 
 /**
@@ -27,7 +31,7 @@ import static frc.robot.util.math.ExtendedMath.deadband;
 public class Robot extends TimedRobot {
     private RobotContainer robotContainer;
 
-    public static SwerveDriveSubsystem swerveDrive;
+    public static frc.robot.subsystems.swerve.SwerveDriveSubsystem swerveDrive;
     public static ClimberArmSubsystem arm;
     public static ClimberWristSubsystem wrist;
     public static VacuumSubsystem pump;
@@ -37,6 +41,7 @@ public class Robot extends TimedRobot {
     public static boolean limitSwitchBypass = false; //false;
 
     public static SendableChooser<Integer> autoMode = new SendableChooser<>();
+    public static PresetMapGroup<Double> CLIMBER_PRESET_GROUP = new PresetMapGroup<>();
 
     /**
      * This method is run when the robot is first started up and should be used for any
@@ -44,7 +49,11 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void robotInit() {
-        swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
+        CLIMBER_PRESET_GROUP.addPreset(ROTATION_NAME, ROTATION_PRESETS);
+        CLIMBER_PRESET_GROUP.addPreset(EXTENSION_NAME, EXTENSION_PRESETS);
+        CLIMBER_PRESET_GROUP.addPreset(WRIST_NAME, WRIST_PRESETS);
+
+        swerveDrive = new SwerveDriveSubsystem(FL_MODULE, FR_MODULE, BL_MODULE, BR_MODULE, SIDE_LENGTH);
         arm = new ClimberArmSubsystem();
         wrist = new ClimberWristSubsystem();
         pump = new VacuumSubsystem();

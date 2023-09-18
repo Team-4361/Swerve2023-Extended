@@ -3,21 +3,16 @@ package frc.robot;
 import com.kauailabs.navx.frc.AHRS;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
-import com.revrobotics.SparkMaxPIDController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import edu.wpi.first.wpilibj.SPI;
-import frc.robot.swerve.chassis.SwerveChassisConfiguration;
-import frc.robot.swerve.joystick.DriveHIDConfiguration;
-import frc.robot.swerve.joystick.SmoothThrottleMap;
 import frc.robot.util.math.*;
-import frc.robot.swerve.module.SwerveModuleConfiguration;
-import frc.robot.swerve.module.SwerveModuleSide;
 import frc.robot.util.pid.PresetMap;
-import frc.robot.util.pid.PresetMapGroup;
 import frc.robot.util.pid.TunablePIDController;
+import frc.robot.util.swerve.SwerveChassis;
+import frc.robot.util.swerve.SwerveModule;
+import frc.robot.util.swerve.SwerveModuleConfig;
 
 import static frc.robot.util.math.DistanceUnit.INCHES;
 import static java.util.Map.entry;
@@ -32,14 +27,6 @@ public class Constants {
         public static final int LEFT_STICK_ID = 0;
         public static final int RIGHT_STICK_ID = 1;
         public static final int XBOX_CONTROLLER_ID = 2;
-
-        public static final DriveHIDConfiguration STICK_CONFIG = new DriveHIDConfiguration(
-                new SmoothThrottleMap(),
-                false,
-                true,
-                true,
-                true
-        );
     }
 
     public static class Chassis {
@@ -47,80 +34,56 @@ public class Constants {
         public static final GearRatio TURN_RATIO = GearRatio.fromRatio(12.8);
         public static final Distance WHEEL_SIZE = Distance.fromInches(4);
         public static final Distance SIDE_LENGTH = Distance.fromInches(26);
-
-        public static final SwerveVelocities MAX_VELOCITY = new SwerveVelocities(
-                Velocity.fromMPS(4.4),
-                Velocity.fromMPS(4.4),
-                AngularVelocity.fromRPM(4000)
-        );
+        public static final Velocity MAX_VELOCITY = Velocity.fromMPS(4.4);
 
         public static final PIDController DRIVE_CONTROLLER = new PIDController(0.01, 0, 0);
         public static final PIDController TURN_CONTROLLER = new PIDController(0.02, 0, 0);
 
-        public static final SwerveModuleConfiguration FL_CONFIG = new SwerveModuleConfiguration(
-                1,
+        public static final SwerveModuleConfig MODULE_CONFIG = new SwerveModuleConfig(
+                MAX_VELOCITY,
+                DRIVE_RATIO,
+                TURN_RATIO,
+                WHEEL_SIZE
+        );
+
+        public static final SwerveModule FL_MODULE = new SwerveModule(
+                "FL",
                 2,
+                1,
                 0,
-                DRIVE_RATIO,
-                TURN_RATIO,
+                MODULE_CONFIG,
                 Rotation2d.fromDegrees(181.45),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.FRONT_LEFT,
-                MAX_VELOCITY
+                1
         );
 
-        public static final SwerveModuleConfiguration FR_CONFIG = new SwerveModuleConfiguration(
-                3,
+        public static final SwerveModule FR_MODULE = new SwerveModule(
+                "FR",
                 4,
-                1,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(-226.32),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.FRONT_RIGHT,
-                MAX_VELOCITY
-        );
-
-        public static final SwerveModuleConfiguration BL_CONFIG = new SwerveModuleConfiguration(
-                5,
-                6,
-                2,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(12.71),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.BACK_LEFT,
-                MAX_VELOCITY
-        );
-
-        public static final SwerveModuleConfiguration BR_CONFIG = new SwerveModuleConfiguration(
-                7,
-                8,
                 3,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(169.38),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.BACK_RIGHT,
-                MAX_VELOCITY
+                1,
+                MODULE_CONFIG,
+                Rotation2d.fromDegrees(-226.32),
+                1
         );
 
-        public static final SwerveChassisConfiguration CHASSIS_CONFIG = new SwerveChassisConfiguration(
-                SIDE_LENGTH,
-                new AHRS(SPI.Port.kMXP),
-                FL_CONFIG,
-                FR_CONFIG,
-                BL_CONFIG,
-                BR_CONFIG,
-                false
+        public static final SwerveModule BL_MODULE = new SwerveModule(
+                "BL",
+                6,
+                5,
+                2,
+                MODULE_CONFIG,
+                Rotation2d.fromDegrees(12.71),
+                1
+        );
+
+        public static final SwerveModule BR_MODULE = new SwerveModule(
+                "BR",
+                8,
+                7,
+                3,
+                MODULE_CONFIG,
+                Rotation2d.fromDegrees(169.38),
+                1
         );
     }
 
@@ -200,7 +163,7 @@ public class Constants {
                 )
         );
 
-        public static final PresetMap WRIST_PRESETS = new PresetMap(
+        public static final PresetMap<Double> WRIST_PRESETS = new PresetMap<>(
                 ofEntries(
                         entry(ZERO_POSITION_NAME, 0.0),
                         entry(HUMAN_STATION_NAME, -38.0),
@@ -213,10 +176,7 @@ public class Constants {
                 )
         );
 
-        public static final PresetMapGroup CLIMBER_PRESET_GROUP = new PresetMapGroup()
-                .addPreset(ROTATION_NAME, ROTATION_PRESETS)
-                .addPreset(EXTENSION_NAME, EXTENSION_PRESETS)
-                .addPreset(WRIST_NAME, WRIST_PRESETS);
+        public static final PresetMap<String> a = new PresetMap<>();
     }
 
     public static class AutoValues {

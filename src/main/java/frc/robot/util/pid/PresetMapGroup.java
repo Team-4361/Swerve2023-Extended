@@ -6,14 +6,14 @@ import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
-public class PresetMapGroup<T> extends HashMap<String, PresetMap<T>> {
+public class PresetMapGroup<T> extends LinkedHashMap<String, PresetMap<? extends T>> {
     private String index = "";
     private String[] sequence;
 
-    public PresetMapGroup<T> addPreset(String name, PresetMap<T> presetMap) {
+    public void addPreset(String name, PresetMap<? extends T> presetMap) {
         this.put(name, presetMap);
-        return this;
     }
 
     public PresetMapGroup<T> setSequenceOrder(String... order) {
