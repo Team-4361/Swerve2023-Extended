@@ -2,6 +2,7 @@ package frc.robot.util.motor;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.REVLibError;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.jni.CANSparkMaxJNI;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -9,6 +10,7 @@ import frc.robot.util.log.AlertManager;
 import frc.robot.util.loop.Looper;
 import frc.robot.util.measurement.AngularVelocity;
 import frc.robot.util.measurement.Temperature;
+import org.littletonrobotics.junction.LogTable;
 
 import java.time.Duration;
 
@@ -38,6 +40,7 @@ public class FRCSparkMax extends CANSparkMax {
 
     private Temperature warnTemp = DEFAULT_WARN_TEMP;
     private Temperature cutoffTemp = DEFAULT_CUTOFF_TEMP;
+    private long lastSimUpdate = System.currentTimeMillis();
 
     /**
      * Create a new object to control a SPARK MAX motor Controller
@@ -57,10 +60,8 @@ public class FRCSparkMax extends CANSparkMax {
 
         AlertManager.warnOnFail(setSimStallTorque(motorType.stallTorqueNewtonMeters), "Sim torque fail.");
 
-        // Add the simulation loop (called every 20ms)
-        /*
         if (getMotorType() == MotorType.kBrushless) {
-            loop.addSimPeriodic(() -> {
+            periodicLooper.addSimPeriodic(() -> {
                 // Make sure the periodic cycle is only ran every 20ms.
                 final long dtMs = System.currentTimeMillis() - lastSimUpdate;
 
@@ -79,11 +80,8 @@ public class FRCSparkMax extends CANSparkMax {
         }
 
         // Add the temperature control loop (called every 2 seconds)
-        loop.addPeriodic(() -> {
-
+        tempLooper.addPeriodic(() -> {
         });
-
-         */
     }
 
     /**
