@@ -1,47 +1,39 @@
 package frc.robot;
 
-import com.kauailabs.navx.frc.AHRS;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import frc.robot.util.loop.LooperManager;
 
-import com.revrobotics.SparkMaxPIDController;
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.ProfiledPIDController;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import edu.wpi.first.wpilibj.SPI;
-import frc.robot.swerve.chassis.SwerveChassisConfiguration;
-import frc.robot.swerve.joystick.DriveHIDConfiguration;
-import frc.robot.swerve.joystick.SmoothThrottleMap;
-import frc.robot.util.math.*;
-import frc.robot.swerve.module.SwerveModuleConfiguration;
-import frc.robot.swerve.module.SwerveModuleSide;
-import frc.robot.util.pid.PresetMap;
-import frc.robot.util.pid.PresetMapGroup;
-import frc.robot.util.pid.TunablePIDController;
+import java.time.Duration;
 
-import static frc.robot.util.math.DistanceUnit.INCHES;
-import static java.util.Map.entry;
-import static java.util.Map.ofEntries;
-
+/**
+ * This {@link Constants} class is an easy-to-use place for fixed value storage (ex. motor/controller IDs,
+ * ratios, etc.)
+ * <p></p>
+ * Only <b>primitive types</b> and <b>Configuration Objects</b> shall be stored here.
+ *
+ * @author Eric Gold
+ * @since 0.0.0
+ */
 public class Constants {
-    public static class Global {
-        public static boolean TEST_MODE = true;
-    }
-
     public static class Control {
+        /** The Left Joystick ID (typically 0) */
         public static final int LEFT_STICK_ID = 0;
+        /** The Right Joystick ID (typically 1) */
         public static final int RIGHT_STICK_ID = 1;
+        /** The Xbox Controller ID (typically 2) */
         public static final int XBOX_CONTROLLER_ID = 2;
-
-        public static final DriveHIDConfiguration STICK_CONFIG = new DriveHIDConfiguration(
-                new SmoothThrottleMap(),
-                false,
-                true,
-                true,
-                true
-        );
     }
 
+    /**
+     * Holds all {@link Constants} for the {@link LooperManager} class. This mainly holds the milliseconds for
+     * Normal and Simulation operations.
+     */
+    public static class Looper {
+        /** The <b>default</b> millisecond loop time. Note: this can be overridden per Looper interface. */
+        public static final Duration PERIODIC_INTERVAL = Duration.ofMillis(20);
+    }
+
+
+    /*
     public static class Chassis {
         public static final GearRatio DRIVE_RATIO = GearRatio.fromRatio(6.86);
         public static final GearRatio TURN_RATIO = GearRatio.fromRatio(12.8);
@@ -229,4 +221,6 @@ public class Constants {
         public static final TunablePIDController PITCH_CONTROLLER = new TunablePIDController("Charge Pitch",
                 0.0081, 0.0, 0.0);
     }
+
+     */
 }

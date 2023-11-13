@@ -9,11 +9,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.swerve.joystick.DriveJoystick;
-import frc.robot.swerve.joystick.DriveXboxController;
-
-import static frc.robot.Constants.ClimberPresets.*;
-import static frc.robot.Constants.Control.*;
+import frc.robot.util.log.AlertManager;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -22,24 +18,10 @@ import static frc.robot.Constants.Control.*;
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-    private final DriveJoystick xyStick = new DriveJoystick(LEFT_STICK_ID, STICK_CONFIG);
-    private final DriveJoystick zStick = new DriveJoystick(RIGHT_STICK_ID, STICK_CONFIG);
-    public static final DriveXboxController xbox = new DriveXboxController(XBOX_CONTROLLER_ID, STICK_CONFIG);
 
-    /**
-     * The container for the robot. Contains subsystems, OI devices, and commands.
-     */
     public RobotContainer() {
         // Configure the trigger bindings
         configureBindings();
-
-        Robot.swerveDrive.setDefaultCommand(Robot.swerveDrive.run(() ->  {
-            Robot.swerveDrive.drive(xyStick, zStick);
-        }));
-
-        if (Robot.wrist.getTargetRotation() > 500) {
-            Robot.wrist.setTarget(0);
-        }
     }
 
     /**
@@ -52,6 +34,9 @@ public class RobotContainer {
      * joysticks}.
      */
     private void configureBindings() {
+        Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));
+        /*
+
         xyStick.button(8).onTrue(Robot.swerveDrive.toggleFieldOrientedCommand());
         xyStick.button(12).onTrue(Robot.swerveDrive.resetGyroCommand());
 
@@ -85,5 +70,6 @@ public class RobotContainer {
         }));
 
         xbox.leftBumper().onTrue(Commands.runOnce(() -> Robot.pump.toggleVacuum()));
+         */
     }
 }

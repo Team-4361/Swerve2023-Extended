@@ -5,18 +5,12 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.subsystems.climber.ClimberArmSubsystem;
-import frc.robot.subsystems.climber.ClimberWristSubsystem;
-import frc.robot.subsystems.vacuum.VacuumSubsystem;
-import frc.robot.swerve.chassis.SwerveDriveSubsystem;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.util.log.VerbosityLevel;
+import frc.robot.util.loop.LooperManager;
 
-import static frc.robot.Constants.Chassis.CHASSIS_CONFIG;
-import static frc.robot.util.math.ExtendedMath.deadband;
 
 /**
  * The VM is configured to automatically run this class, and to call the methods corresponding to
@@ -27,16 +21,8 @@ import static frc.robot.util.math.ExtendedMath.deadband;
 public class Robot extends TimedRobot {
     private RobotContainer robotContainer;
 
-    public static SwerveDriveSubsystem swerveDrive;
-    public static ClimberArmSubsystem arm;
-    public static ClimberWristSubsystem wrist;
-    public static VacuumSubsystem pump;
-    public static PowerDistribution power;
-
-    public static boolean pidControlEnabled = true; //true;
-    public static boolean limitSwitchBypass = false; //false;
-
-    public static SendableChooser<Integer> autoMode = new SendableChooser<>();
+    public static VerbosityLevel verbosity = VerbosityLevel.DEBUG;
+    public static CommandXboxController xbox;
 
     /**
      * This method is run when the robot is first started up and should be used for any
@@ -44,11 +30,12 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void robotInit() {
-        swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
-        arm = new ClimberArmSubsystem();
-        wrist = new ClimberWristSubsystem();
-        pump = new VacuumSubsystem();
-        power = new PowerDistribution();
+        xbox = new CommandXboxController(0);
+        //swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
+        //arm = new ClimberArmSubsystem();
+        //wrist = new ClimberWristSubsystem();
+        //pump = new VacuumSubsystem();
+        //power = new PowerDistribution();
 
         // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
         robotContainer = new RobotContainer();
@@ -68,6 +55,7 @@ public class Robot extends TimedRobot {
         // and running subsystem periodic() methods.  This must be called from the robot's periodic
         // block in order for anything in the Command-based framework to work.
         CommandScheduler.getInstance().run();
+        LooperManager.getInstance().run();
     }
 
     @Override public void disabledInit() { CommandScheduler.getInstance().cancelAll(); }
@@ -79,7 +67,7 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void teleopPeriodic() {
-        Robot.arm.getExtension().translateMotor(deadband(-RobotContainer.xbox.getLeftY() / 2, 0.1));
-        Robot.arm.getRotation().translateMotor(deadband(-RobotContainer.xbox.getRightY(), 0.1));
+        //Robot.arm.getExtension().translateMotor(deadband(-RobotContainer.xbox.getLeftY() / 2, 0.1));
+        //Robot.arm.getRotation().translateMotor(deadband(-RobotContainer.xbox.getRightY(), 0.1));
     }
 }
