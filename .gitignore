@@ -5,6 +5,9 @@
 # Prerequisites
 *.d
 
+# AdvantageKit BuildConstant file; it's automatically generated!
+src/main/java/frc/robot/BuildConstants.java
+
 # Compiled Object files
 *.slo
 *.lo

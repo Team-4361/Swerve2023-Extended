@@ -83,10 +83,18 @@ public class Looper {
     public boolean isRunning() { return this.running; }
 
     /**
-     * @return If the current {@link Looper} instance is <b>finished</b>;
+     * @return If the current {@link Looper} instance is <b>finished</b> and NOT running;
      * (ex. maximum execution cycles reached, or {@link #stop()} method is called.)
      */
     public boolean isFinished() {
+        return !isRunning() && isRawFinished();
+    }
+
+    /**
+     * @return If the {@link Looper} is <b>actually finished.</b> Unlike the {@link #isFinished()},
+     * method, this does not care about the running status.
+     */
+    private boolean isRawFinished() {
         return (manFinished || maxCycles > 0 && cycles >= maxCycles);
     }
 
@@ -259,7 +267,7 @@ public class Looper {
         long currentTimeMillis = System.currentTimeMillis();
 
         if (currentTimeMillis >= nextMillis) {
-            if (isFinished()) {
+            if (isRawFinished()) {
                 if (!setFinished) {
                     setFinished = true;
                     nextMillis = System.currentTimeMillis() + endDelay.toMillis();
@@ -273,7 +281,7 @@ public class Looper {
             periodicRunnables.forEach(Runnable::run);
             simRunnables.forEach(Runnable::run);
 
-            if (isFinished())
+            if (isRawFinished())
                 return; // just in-case.
             nextMillis = currentTimeMillis + interval.toMillis();
             cycles++;

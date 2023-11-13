@@ -6,8 +6,11 @@ import com.revrobotics.jni.CANSparkMaxJNI;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import frc.robot.util.log.AlertManager;
+import frc.robot.util.loop.Looper;
 import frc.robot.util.measurement.AngularVelocity;
 import frc.robot.util.measurement.Temperature;
+
+import java.time.Duration;
 
 /**
  * This class enables a safe interaction with {@link CANSparkMax} motors; temperature control and watchdogs
@@ -23,18 +26,18 @@ public class FRCSparkMax extends CANSparkMax {
     /** The {@link Temperature} in which the Motor will be temporarily disabled. */
     public static Temperature DEFAULT_CUTOFF_TEMP = Temperature.fromC(100);
 
-    //private static final Looper loop = new Looper(
-   //         new LooperOptions()
-   //                 .setInterval(Duration.ofMillis(20))
-   // );
-    private static boolean addedLoop = false; // only add if this class is actually used!
+    /** The {@link Looper} used for simulation, and debugging if applicable. */
+    private static final Looper periodicLooper = new Looper()
+            .setInterval(Duration.ofMillis(20)); // run sim every 2 seconds.
+
+    /** The {@link Looper} used for temperature checking. */
+    private static final Looper tempLooper = new Looper()
+            .setInterval(Duration.ofSeconds(5)); // check temp every 5 seconds.
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     private Temperature warnTemp = DEFAULT_WARN_TEMP;
     private Temperature cutoffTemp = DEFAULT_CUTOFF_TEMP;
-
-    private long lastSimUpdate = System.currentTimeMillis();
 
     /**
      * Create a new object to control a SPARK MAX motor Controller
@@ -53,11 +56,6 @@ public class FRCSparkMax extends CANSparkMax {
         ), "Sim free speed fail.");
 
         AlertManager.warnOnFail(setSimStallTorque(motorType.stallTorqueNewtonMeters), "Sim torque fail.");
-
-        if (!addedLoop) {
-            //LooperManager.getInstance().addLoop(loop);
-            addedLoop = true;
-        }
 
         // Add the simulation loop (called every 20ms)
         /*

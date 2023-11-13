@@ -61,7 +61,7 @@ public class LooperManager {
                 looper.start();
                 continue;
             }
-            if (looper.isFinished() && !looper.isRunning()) {
+            if (looper.isFinished()) {
                 removeLoops.add(looper);
                 continue;
             }

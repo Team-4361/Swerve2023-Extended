@@ -10,6 +10,9 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.util.log.VerbosityLevel;
 import frc.robot.util.loop.LooperManager;
+import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
 
 
 /**
@@ -18,7 +21,7 @@ import frc.robot.util.loop.LooperManager;
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
-public class Robot extends TimedRobot {
+public class Robot extends LoggedRobot {
     private RobotContainer robotContainer;
 
     public static VerbosityLevel verbosity = VerbosityLevel.DEBUG;
@@ -30,6 +33,35 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void robotInit() {
+        // Initialize AdvantageKit logging. (DO NOT TOUCH)
+        Logger.getInstance().recordMetadata("Project Name", BuildConstants.MAVEN_NAME);
+        Logger.getInstance().recordMetadata("Build Date", BuildConstants.BUILD_DATE);
+        Logger.getInstance().recordMetadata("Git SHA", BuildConstants.GIT_SHA);
+        Logger.getInstance().recordMetadata("Git Date", BuildConstants.GIT_DATE);
+        Logger.getInstance().recordMetadata("Git Branch", BuildConstants.GIT_BRANCH);
+
+        //noinspection RedundantSuppression
+        switch (BuildConstants.DIRTY) {
+            //noinspection DataFlowIssue
+            case 0:
+                Logger.getInstance().recordMetadata("Git Status", "All changes committed");
+                break;
+            //noinspection DataFlowIssue
+            case 1:
+                Logger.getInstance().recordMetadata("Git Status", "Un-committed changes");
+                break;
+            //noinspection DataFlowIssue
+            default:
+                Logger.getInstance().recordMetadata("Git Status", "Unknown");
+                break;
+        }
+
+        // TODO: setup replay/sim mode!
+        Logger.getInstance().addDataReceiver(new NT4Publisher()); // publish to NetworkTables.
+        Logger.getInstance().start(); // start logging!
+
+        //////////////////////////////////////////////////////////
+
         xbox = new CommandXboxController(0);
         //swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
         //arm = new ClimberArmSubsystem();
