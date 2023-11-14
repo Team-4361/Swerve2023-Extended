@@ -5,14 +5,20 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.TimedRobot;
+import com.revrobotics.CANSparkMaxLowLevel;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.util.log.VerbosityLevel;
 import frc.robot.util.loop.LooperManager;
+import frc.robot.util.motor.FRCSparkMax;
+import frc.robot.util.motor.MotorIOSim;
+import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 
 /**
@@ -26,6 +32,7 @@ public class Robot extends LoggedRobot {
 
     public static VerbosityLevel verbosity = VerbosityLevel.DEBUG;
     public static CommandXboxController xbox;
+    public static FRCSparkMax motor;
 
     /**
      * This method is run when the robot is first started up and should be used for any
@@ -56,13 +63,24 @@ public class Robot extends LoggedRobot {
                 break;
         }
 
+        boolean replay = false;
+
         // TODO: setup replay/sim mode!
-        Logger.getInstance().addDataReceiver(new NT4Publisher()); // publish to NetworkTables.
+        if (replay) {
+            setUseTiming(false);
+            String logPath = LogFileUtil.findReplayLog();
+            Logger.getInstance().setReplaySource(new WPILOGReader(logPath));
+            Logger.getInstance().addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+        } else {
+            Logger.getInstance().addDataReceiver(new NT4Publisher());
+        }
         Logger.getInstance().start(); // start logging!
 
         //////////////////////////////////////////////////////////
 
         xbox = new CommandXboxController(0);
+        motor = new FRCSparkMax(new MotorIOSim(1, CANSparkMaxLowLevel.MotorType.kBrushless, DCMotor.getNEO(1)));
+
         //swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
         //arm = new ClimberArmSubsystem();
         //wrist = new ClimberWristSubsystem();
@@ -101,5 +119,7 @@ public class Robot extends LoggedRobot {
     public void teleopPeriodic() {
         //Robot.arm.getExtension().translateMotor(deadband(-RobotContainer.xbox.getLeftY() / 2, 0.1));
         //Robot.arm.getRotation().translateMotor(deadband(-RobotContainer.xbox.getRightY(), 0.1));
+        motor.set(Robot.xbox.getLeftY()); // TEST
+
     }
 }
