@@ -1,123 +1,56 @@
 package frc.robot.util.log;
 
 import com.revrobotics.REVLibError;
+import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot;
-import frc.robot.util.loop.Looper;
+import frc.robot.util.loop.LooperManager;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.time.Duration;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 
-import static frc.robot.util.math.ExtendedMath.formatTime;
+import static frc.robot.Constants.LooperConfig.LOW_PRIORITY_NAME;
 
-/**
- * This {@link AlertManager} class enables attention-grabbing functionality; this includes color-coded logs,
- * HID-vibration, and more.
- *
- * @author Eric Gold
- * @since 0.0.0
- */
 public class AlertManager {
+    private static final RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
+    private static final ArrayList<AlertManager> managers = new ArrayList<>();
+
+    private final ArrayList<Alert> alerts;
+    private final HashMap<String, String[]> cache;
+    private final String groupName;
+
+    //region static methods
     /**
-     * This {@link VibrationLooper} is designed to control {@link GenericHID} vibrations using special
-     * {@link Looper} properties and additional features.
+     * Generates the log header for a log message.
      *
-     * @author Eric Gold
-     * @since 0.0.0
+     * @param sender The originating {@link Object}.
+     * @param type   The type of log message.
+     * @return The log header.
      */
-    private static class VibrationLooper extends Looper {
-        private static final ConcurrentLinkedQueue<GenericHID> activeLoops = new ConcurrentLinkedQueue<>();
-        private boolean isVibrating = false;
-
-        /**
-         * @param hid The {@link GenericHID} to test.
-         * @return If the specified {@link GenericHID} is vibrating and not available.
-         */
-        public static boolean isVibrating(GenericHID hid) { return activeLoops.contains(hid); }
-
-        /**
-         * Constructs a new {@link VibrationLooper} with the {@link GenericHID} HID.
-         * @param hid The {@link GenericHID} to use.
-         * @throws InstantiationException If the specified {@link GenericHID} is vibrating and not available.
-         */
-        public VibrationLooper(GenericHID hid) throws InstantiationException {
-            if (activeLoops.contains(hid))
-                throw new InstantiationException("HID is already vibrating!");
-
-            setInterval(Duration.ofMillis(500));
-            setEndDelay(Duration.ofSeconds(1)); // prevents re-vibrating with-in this duration.
-            setMaxCycles(2); // MUST be divisible by 2.
-
-            addInit(() -> activeLoops.add(hid));
-            addPeriodic(() -> {
-                hid.setRumble(GenericHID.RumbleType.kLeftRumble, isVibrating?0:1);
-                hid.setRumble(GenericHID.RumbleType.kRightRumble, isVibrating?0:1);
-                isVibrating = !isVibrating;
-                AlertManager.debug(this, "Called it!");
-            });
-            addOnFinished(() -> {
-                hid.setRumble(GenericHID.RumbleType.kLeftRumble, 0);
-                hid.setRumble(GenericHID.RumbleType.kRightRumble, 0);
-                activeLoops.remove(hid);
-            });
-        }
-    }
-
-    public static RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
-
-
-    /**
-     * Vibrates the {@link GenericHID} controller in a "message-like" configuration;
-     * as in twice with 100ms interval. No repeat calls (same Controller) are allowed with-in 2 seconds.
-     *
-     * @param controller The {@link GenericHID} controller to vibrate.
-     */
-    public static void vibrate(GenericHID controller) {
-        if (VibrationLooper.isVibrating(controller)) {
-            AlertManager.debug("Controller is already vibrating; not constructing.");
-            return;
-        }
-        try {
-            new VibrationLooper(controller);
-        } catch (InstantiationException ex) {
-            AlertManager.warn("Failed to construct Controller Vibrator!");
-        }
-    }
-
-    public AlertManager() throws InstantiationException {
-        throw new InstantiationException("AlertManager is a utility class!");
-    }
-
     private static String getLogHeader(Object sender, String type) {
         String name = " ";
         try {
             if (sender != null)
                 name = " " + sender.getClass().getName() + " ";
-        } catch (Exception ignored) {}
-        return "[" + type + name + formatTime(rb.getUptime()) + " ]: ";
+        } catch (Exception ignored) {
+        }
+        return "[" + type + name + formatTime(rb.getUptime()) + "] ";
     }
 
     /**
-     * Broadcasts a DEBUG message to the RIOLOG
-     * @param sender The originating {@link Object}
-     * @param text The {@link String} to broadcast.
+     * Broadcasts a DEBUG message to the RIOLOG.
+     *
+     * @param sender The originating {@link Object}.
+     * @param text   The {@link String} to broadcast.
      */
     public static void debug(Object sender, String text) {
         if (Robot.verbosity != VerbosityLevel.DEBUG)
             return;
         System.out.println(getLogHeader(sender, "DEBUG") + text);
-    }
-
-    /**
-     * Broadcasts an INFO message to the RIOLOG
-     * @param sender The originating {@link Object}
-     * @param text The {@link String} to broadcast.
-     */
-    public static void info(Object sender, String text) {
-        System.out.println(getLogHeader(sender, "INFO") + text);
     }
 
     /**
@@ -129,20 +62,85 @@ public class AlertManager {
         DriverStation.reportWarning(getLogHeader(sender, "WARN") + text, false);
     }
 
-    public static void error(GenericHID hid, Object sender, String text) {
-        if (hid != null) {
-            // Create a looper to manage this; expire after 10 seconds.
-
-        }
-    }
-
     /**
      * Broadcasts an ERROR message to the RIOLOG
      * @param sender The originating {@link Object}
      * @param text The {@link String} to broadcast.
      */
     public static void error(Object sender, String text) {
-        DriverStation.reportError(getLogHeader(sender, "WARN") + text, false);
+        DriverStation.reportError(getLogHeader(sender, "ERROR") + text, false);
+    }
+
+
+    /**
+     * Broadcasts an INFO message to the RIOLOG.
+     *
+     * @param sender The originating {@link Object}.
+     * @param text   The {@link String} to broadcast.
+     */
+    public static void info(Object sender, String text) {
+        System.out.println(getLogHeader(sender, "INFO") + text);
+    }
+
+    /**
+     * Broadcasts a DEBUG message to the RIOLOG with a null sender.
+     *
+     * @param text The {@link String} to broadcast.
+     */
+    public static void debug(String text) { debug(null, text); }
+
+    /**
+     * Broadcasts an INFO message to the RIOLOG with a null sender.
+     *
+     * @param text The {@link String} to broadcast.
+     */
+    public static void info(String text) { info(null, text); }
+
+    public static void logAlert(Alert alert) {
+        if (!alert.isEnabled())
+            return; // only log enabled alerts!
+        switch (alert.getAlertType()) {
+            case ERROR -> error(alert.getAlertDescription());
+        }
+    }
+
+    /**
+     * Formats the uptime as a string.
+     *
+     * @param uptime The uptime in milliseconds.
+     * @return The formatted uptime string.
+     */
+    private static String formatTime(long uptime) {
+        long totalSeconds = uptime / 1000;
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+        long millis = uptime % 1000;
+
+        return String.format("%02d:%02d:%02d.%03d", hours, minutes, seconds, millis);
+    }
+
+    /**
+     * @param groupName The Group Name to use.
+     * @return An {@link AlertManager} if <code>groupName</code> exists; null otherwise.
+     */
+    private static AlertManager getRawGroup(String groupName) {
+        return managers.stream()
+                .filter(manager -> manager.groupName.equals(groupName))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * @param groupName The Group Name to use.
+     * @return An {@link AlertManager} associated with the <code>groupName</code> parameter. An instance will
+     * <b>automatically</b> be created if invalid.
+     */
+    public static AlertManager getGroup(String groupName) {
+        if (getRawGroup(groupName) == null) {
+            managers.add(new AlertManager(groupName));
+        }
+        return getRawGroup(groupName);
     }
 
     /**
@@ -174,8 +172,93 @@ public class AlertManager {
     public static void errorOnFail(REVLibError error) { errorOnFail(null, error, ""); }
     public static void warnOnFail(REVLibError error) { warnOnFail(null, error, ""); }
 
-    public static void debug(String text) { debug(null, text); }
-    public static void info(String text) { info(null, text); }
     public static void warn(String text) { warn(null, text); }
     public static void error(String text) { error(null, text); }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    //endregion
+
+    /**
+     * This method is <b>NOT INTENDED</b> to be called by the user. Please use {@link #getGroup(String)} instead.
+     */
+    AlertManager(String groupName) {
+        this.groupName = groupName;
+        this.alerts = new ArrayList<>();
+        this.cache = new HashMap<>();
+
+        LooperManager.getLoop(LOW_PRIORITY_NAME).addPeriodic(this::update);
+    }
+
+    /**
+     * Adds an {@link Alert} to the {@link AlertManager}
+     * @param alert     The {@link Alert} to add.
+     * @return          The current {@link AlertManager} instance.
+     */
+    public AlertManager addAlert(Alert alert) {
+        alerts.add(alert);
+        return this;
+    }
+
+    /**
+     * Removes an {@link Alert} from the {@link AlertManager}
+     * @param alert     The {@link Alert} to remove.
+     * @return          The current {@link AlertManager} instance.
+     */
+    public AlertManager removeAlert(Alert alert) {
+        alerts.remove(alert);
+        return this;
+    }
+
+    /**
+     * Clears all {@link Alert} instances from the {@link AlertManager}.
+     * @return The current {@link AlertManager} instance.
+     */
+    public AlertManager clearAll() {
+        alerts.clear();
+        return this;
+    }
+
+    /** @return All registered {@link Alert} instances. */
+    public ArrayList<Alert> getAlerts() { return this.alerts; }
+
+    public String[] getEnabledAlerts(AlertType type) {
+        Iterator<Alert> it = alerts.iterator();
+        ArrayList<String> output = new ArrayList<>();
+        while (it.hasNext()) {
+            Alert a = it.next();
+            if (a.shouldRemove()) {
+                it.remove();
+                continue;
+            }
+            if (!a.isEnabled() || a.getAlertType() != type) {
+                continue;
+            }
+            output.add(a.getAlertType().toString() + ": " + a.getAlertDescription());
+        }
+        return output.toArray(String[]::new);
+    }
+
+    public void update() {
+        Sendable sender = builder -> {
+            builder.clearProperties();
+
+            // Rebuild the cache.
+            cache.clear();
+            for (AlertType type : AlertType.values()) {
+                String[] alerts = getEnabledAlerts(type);
+                cache.put(type.toString(), alerts);
+
+                // For each element in the cache, add the String Property
+                for (int i=0; i<alerts.length; i++) {
+                    final int fIdx = i; // prevents the idx from changing; only accepted way.
+                    builder.addStringArrayProperty(type + " #" + i,
+                            () -> (new String[]{cache.get(type.toString())[fIdx]}),
+                            null
+                    );
+                }
+            }
+        };
+        SmartDashboard.putData(groupName, sender);
+    }
 }

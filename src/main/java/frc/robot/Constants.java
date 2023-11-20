@@ -23,13 +23,21 @@ public class Constants {
         public static final int XBOX_CONTROLLER_ID = 2;
     }
 
+    public static class AlertConfig {
+        public static final String GROUP_NAME = "Alerts";
+    }
+
     /**
      * Holds all {@link Constants} for the {@link LooperManager} class. This mainly holds the milliseconds for
      * Normal and Simulation operations.
      */
-    public static class Looper {
+    public static class LooperConfig {
         /** The <b>default</b> millisecond loop time. Note: this can be overridden per Looper interface. */
+        public static final String PERIODIC_NAME = "PERIODIC";
         public static final Duration PERIODIC_INTERVAL = Duration.ofMillis(20);
+
+        public static final String LOW_PRIORITY_NAME = "LOW-PRIORITY";
+        public static final Duration LOW_PRIORITY_INTERVAL = Duration.ofSeconds(3);
     }
 
 

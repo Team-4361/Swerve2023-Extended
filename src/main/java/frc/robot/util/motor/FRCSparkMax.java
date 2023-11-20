@@ -2,21 +2,23 @@ package frc.robot.util.motor;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.REVLibError;
+import com.revrobotics.jni.CANSparkMaxJNI;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.MutableMeasure;
 import edu.wpi.first.units.Temperature;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.util.loop.Looper;
-import frc.robot.util.motor.MotorIO.MotorIOInputs;
-import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.inputs.LoggedSystemStats;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import frc.robot.util.log.Alert;
+import frc.robot.util.log.AlertCondition;
+import frc.robot.util.log.AlertManager;
+import frc.robot.util.log.AlertType;
 
 import java.time.Duration;
 
 import static edu.wpi.first.units.Units.Celsius;
+import static frc.robot.Constants.AlertConfig.GROUP_NAME;
 
 /**
  * This class enables a safe interaction with {@link CANSparkMax} motors; temperature control and watchdogs
@@ -25,82 +27,103 @@ import static edu.wpi.first.units.Units.Celsius;
  * @author Eric Gold
  * @since 0.0.0
  */
-public class FRCSparkMax extends SubsystemBase {
-    /** The {@link Temperature} in which the Driver/Operator will be warned, but with no action taken. */
-    public static Measure<Temperature> DEFAULT_WARN_TEMP = Celsius.of(40);
-
+public class FRCSparkMax extends CANSparkMax {
     /** The {@link Temperature} in which the Motor will be temporarily disabled. */
-    public static Measure<Temperature> DEFAULT_CUTOFF_TEMP = Celsius.of(40);
-
-
-    /** The {@link Looper} used for temperature checking. */
-    private static final Looper tempLooper = new Looper()
-            .setInterval(Duration.ofSeconds(5)); // check temp every 5 seconds.
+    public static final Measure<Temperature> DEFAULT_CUTOFF_TEMP = Celsius.of(60);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Allow mutable for performance reasons.
-    private final MutableMeasure<Temperature> warnTemp = DEFAULT_WARN_TEMP.mutableCopy();
-    private final MutableMeasure<Temperature> cutoffTemp = DEFAULT_CUTOFF_TEMP.mutableCopy();
-
-    private final MotorIO io;
-    private MotorIOInputs inputs;
-
-    /**
-     * This method is called periodically by the {@link CommandScheduler}. Useful for updating subsystem-specific state
-     * that you don't want to offload to a {@link Command}. Teams should try to be consistent within their own codebases
-     * about which responsibilities will be handled by Commands, and which will be handled here.
-     */
-    @Override
-    public void periodic() {
-        io.updateInputs(inputs);
-        Logger.getInstance().processInputs("Motor " + getID(), inputs);
-    }
-
-    public double get() { return inputs.appliedPower; }
-    public double getRotations() { return inputs.rotations; }
-    public double getVelocity() { return inputs.velocityRPM; }
-    public double getTemperatureC() { return inputs.temperatureC; }
-    public double getCurrent() { return inputs.amperes; }
-    public boolean isInverted() { return inputs.inverted; }
-    public MotorType getMotorType() { return inputs.motorType; }
-    public long getID() { return inputs.id; }
-
-    public void set(double power) { io.set(power); }
-    public void setInverted(boolean inverted) { io.setInverted(inverted); }
+    private double cutoffTempC;
 
     /**
      * Create a new object to control a SPARK MAX motor Controller
      *
-     * @param io  The {@link MotorIO} instance used for hardware-communication.
+     * @param deviceId The device ID.
+     * @param type     The motor type connected to the controller. Brushless motor wires must be connected to their
+     *                 matching colors and the hall sensor must be plugged in. Brushed motors must be connected to the
+     *                 Red and Black terminals only.
      */
-    public FRCSparkMax(MotorIO io) {
-        this.io = io;
-        this.inputs = new MotorIOInputs();
+    public FRCSparkMax(int deviceId, MotorType type, DCMotor model) {
+        super(deviceId, type);
 
-        // Add the temperature control loop (called every 2 seconds)
-        tempLooper.addPeriodic(() -> {
-            if (inputs.temperatureC >= warnTemp.in(Celsius)) {
-                // TODO: implement!
-            }
-        });
+        // Add the temperature cut-off alert.
+        AlertManager
+                .getGroup(GROUP_NAME)
+                .addAlert(new Alert(
+                        "Motor " + deviceId + " over-temperature.",
+                        AlertType.ERROR, // serious condition; it can cause permanent damage!
+                        new AlertCondition(() -> getMotorTemperature() >= cutoffTempC) // enable condition
+                                .setEnableDelay(Duration.ofSeconds(5))  // allow brief periods of over-temp
+                                .setDisableDelay(Duration.ofSeconds(0)) // disable instantly.
+                                .setAutoDisable(true)                   // allow disabling.
+                )
+        );
+
+        // If simulation: set required values.
+        if (RobotBase.isSimulation()) {
+            new DCMotorSim()
+            setSimFreeSpeed(model.getCurrent()
+        }
+    }
+
+
+
+    /**
+     * Set the free speed of the motor being simulated.
+     *
+     * @param freeSpeed the free speed (RPM) of the motor connected to spark max
+     * @return {@link REVLibError#kOk} if successful
+     */
+    public REVLibError setSimFreeSpeed(final double freeSpeed) {
+        throwIfClosed();
+        return REVLibError.fromInt(
+                CANSparkMaxJNI.c_SparkMax_SetSimFreeSpeed(sparkMaxHandle, (float)freeSpeed));
     }
 
     /**
-     * Sets the {@link Temperature} in which the Driver/Operator will be warned, but with no action taken.
-     * @param temp The desired {@link Temperature}
+     * Set the stall torque of the motor being simulated.
+     *
+     * @param stallTorque The stall torque (N m) of the motor connected to sparkmax
+     * @return {@link REVLibError#kOk} if successful
      */
-    public void setWarnTemp(Measure<Temperature> temp) { this.warnTemp.mut_replace(temp); }
+    public REVLibError setSimStallTorque(final double stallTorque) {
+        throwIfClosed();
+        return REVLibError.fromInt(
+                CANSparkMaxJNI.c_SparkMax_SetSimStallTorque(sparkMaxHandle, (float) stallTorque));
+    }
+
+    /**
+     * Get if the internal SparkMAX has been closed.
+     * @return true if already closed, false if not.
+     * @see com.revrobotics.CANSparkMaxLowLevel#isClosed
+     */
+    public boolean isClosed() {
+        return isClosed.get();
+    }
+
+    /**
+     * Internal Rev method, made public through overriding {@link CANSparkMaxLowLevel#throwIfClosed()}
+     */
+    @Override
+    public void throwIfClosed() {
+        super.throwIfClosed();
+    }
+
+    @Override
+    public void set(final double speed) {
+        super.set(MathUtil.clamp(speed, -1, 1));
+    }
+
+    public void set(final ControlType controlType, final double value) {
+        this.getPIDController().setReference(value, controlType);
+    }
 
     /**
      * Sets the {@link Temperature} in which the Motor will be temporarily disabled.
-     * @param temp The desired {@link Temperature}
+     * @param tempC The desired {@link Temperature} in Celsius.
      */
-    public void setCutoffTemp(Measure<Temperature> temp) { this.cutoffTemp.mut_replace(temp); }
-
-    /** @return The {@link Temperature} in which the Driver/Operator will be warned, but with no action taken. */
-    public final Measure<Temperature> getWarnTemp() { return warnTemp; }
+    public void setCutoffTemp(double tempC) { cutoffTempC = tempC; }
 
     /** The {@link Temperature} in which the Motor will be temporarily disabled. */
-    public final Measure<Temperature> getCutoffTemp() { return cutoffTemp; }
+    public double getCutoffTemp() { return cutoffTempC; }
 }

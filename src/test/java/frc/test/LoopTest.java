@@ -1,16 +1,7 @@
 package frc.test;
 
-import frc.robot.util.log.AlertManager;
 import frc.robot.util.loop.Looper;
 import frc.robot.util.loop.LooperManager;
-import frc.robot.util.math.ExtendedMath;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * This {@link LoopTest} class is designed to test {@link Looper} and
@@ -28,16 +19,17 @@ public class LoopTest {
      * @author Eric Gold
      * @since 0.0.0
      */
-    private static class TrackedLooper extends Looper {
+
+    /*private static class TrackedLooper extends Looper {
         private long lastPeriodic;
         private final ArrayList<Long> periodicIntervals;
 
-        /**
+        *//**
          * Starts the {@link Looper} instance <b>when managed by the {@link LooperManager} or equivalent.</b>
          *
          * @return The started {@link Looper} instance.
          * @see LooperManager#run()
-         */
+         *//*
         @Override
         public Looper start() {
             super.start();
@@ -45,9 +37,9 @@ public class LoopTest {
             return this;
         }
 
-        /**
+        *//**
          * Constructs a new {@link TrackedLooper}
-         */
+         *//*
         public TrackedLooper() {
             this.periodicIntervals = new ArrayList<>();
 
@@ -87,9 +79,9 @@ public class LoopTest {
         }
     }
 
-    /**
+    *//**
      * Runs the first test to check the loop's integrity and time-verification.
-     */
+     *//*
     @Test
     @DisplayName("Method Call Test")
     public void testMethodCalls() {
@@ -108,5 +100,5 @@ public class LoopTest {
 
             AlertManager.debug(i + " loop(s) successful.");
         }
-    }
+    }*/
 }

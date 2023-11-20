@@ -5,20 +5,21 @@
 
 package frc.robot;
 
-import com.revrobotics.CANSparkMaxLowLevel;
-import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.robot.util.log.VerbosityLevel;
+import frc.robot.util.log.*;
 import frc.robot.util.loop.LooperManager;
 import frc.robot.util.motor.FRCSparkMax;
-import frc.robot.util.motor.MotorIOSim;
-import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
-import org.littletonrobotics.junction.wpilog.WPILOGReader;
-import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
+import static frc.robot.Constants.LooperConfig.*;
 
 
 /**
@@ -40,7 +41,7 @@ public class Robot extends LoggedRobot {
      */
     @Override
     public void robotInit() {
-        // Initialize AdvantageKit logging. (DO NOT TOUCH)
+        // region Initialize AdvantageKit logging. (DO NOT TOUCH)
         Logger.getInstance().recordMetadata("Project Name", BuildConstants.MAVEN_NAME);
         Logger.getInstance().recordMetadata("Build Date", BuildConstants.BUILD_DATE);
         Logger.getInstance().recordMetadata("Git SHA", BuildConstants.GIT_SHA);
@@ -63,32 +64,52 @@ public class Robot extends LoggedRobot {
                 break;
         }
 
-        boolean replay = false;
-
         // TODO: setup replay/sim mode!
-        if (replay) {
-            setUseTiming(false);
-            String logPath = LogFileUtil.findReplayLog();
-            Logger.getInstance().setReplaySource(new WPILOGReader(logPath));
-            Logger.getInstance().addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
-        } else {
-            Logger.getInstance().addDataReceiver(new NT4Publisher());
-        }
+        Logger.getInstance().addDataReceiver(new NT4Publisher());
         Logger.getInstance().start(); // start logging!
-
-        //////////////////////////////////////////////////////////
+        // endregion
 
         xbox = new CommandXboxController(0);
-        motor = new FRCSparkMax(new MotorIOSim(1, CANSparkMaxLowLevel.MotorType.kBrushless, DCMotor.getNEO(1)));
 
-        //swerveDrive = new SwerveDriveSubsystem(CHASSIS_CONFIG);
-        //arm = new ClimberArmSubsystem();
-        //wrist = new ClimberWristSubsystem();
-        //pump = new VacuumSubsystem();
-        //power = new PowerDistribution();
+        // Add low-priority and periodic instance loops. ALL Runnable(s) will be added to these,
+        // preventing a HUGE number of Objects from creating with the RoboRIO's limited RAM/CPU cycles.
+        LooperManager
+                .getLoop(PERIODIC_NAME)
+                .setInterval(PERIODIC_INTERVAL)
+                .start();
+
+        LooperManager
+                .getLoop(LOW_PRIORITY_NAME)
+                .setInterval(LOW_PRIORITY_INTERVAL)
+                .start();
+
+        Alert testAlert = new Alert("TEST", AlertType.WARNING, new AlertCondition(() -> true));
+        AlertManager
+                .getGroup()
+                .addAlert(testAlert);
+
+        BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
+        CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
+        CommandScheduler.getInstance().onCommandFinish(c -> logCommandFunction.accept(c, false));
+        CommandScheduler.getInstance().onCommandInterrupt(c -> logCommandFunction.accept(c, false));
 
         // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
         robotContainer = new RobotContainer();
+    }
+
+    private static BiConsumer<Command, Boolean> getCommandActivity() {
+        Map<String, Integer> commandCounts = new HashMap<>();
+        BiConsumer<Command, Boolean> logCommandFunction =
+                (Command command, Boolean active) -> {
+                    String name = command.getName();
+                    int count = commandCounts.getOrDefault(name, 0) + (active ? 1 : -1);
+                    commandCounts.put(name, count);
+                    Logger.getInstance()
+                            .recordOutput(
+                                    "CommandsUnique/" + name + "_" + Integer.toHexString(command.hashCode()), active);
+                    Logger.getInstance().recordOutput("CommandsAll/" + name, count > 0);
+                };
+        return logCommandFunction;
     }
 
     /**
@@ -105,7 +126,7 @@ public class Robot extends LoggedRobot {
         // and running subsystem periodic() methods.  This must be called from the robot's periodic
         // block in order for anything in the Command-based framework to work.
         CommandScheduler.getInstance().run();
-        LooperManager.getInstance().run();
+        LooperManager.run();
     }
 
     @Override public void disabledInit() { CommandScheduler.getInstance().cancelAll(); }
@@ -119,7 +140,5 @@ public class Robot extends LoggedRobot {
     public void teleopPeriodic() {
         //Robot.arm.getExtension().translateMotor(deadband(-RobotContainer.xbox.getLeftY() / 2, 0.1));
         //Robot.arm.getRotation().translateMotor(deadband(-RobotContainer.xbox.getRightY(), 0.1));
-        motor.set(Robot.xbox.getLeftY()); // TEST
-
     }
 }

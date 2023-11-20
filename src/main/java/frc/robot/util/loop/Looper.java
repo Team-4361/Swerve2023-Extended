@@ -2,11 +2,14 @@ package frc.robot.util.loop;
 
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Constants;
+import frc.robot.Robot;
+import frc.robot.util.log.VerbosityLevel;
+import org.littletonrobotics.junction.Logger;
 
 import java.time.Duration;
 import java.util.ArrayList;
 
-import static frc.robot.Constants.Looper.PERIODIC_INTERVAL;
+import static frc.robot.Constants.LooperConfig.PERIODIC_INTERVAL;
 
 /**
  * This {@link Looper} class is designed to be the bare-minimum for <code>periodic</code>
@@ -38,6 +41,7 @@ public class Looper {
     private final ArrayList<Runnable> simRunnables;
     private final ArrayList<Runnable> endRunnables;
     private final ArrayList<Runnable> initRunnables;
+    private final String name;
 
     private Duration interval;
     private Duration endDelay;
@@ -210,7 +214,8 @@ public class Looper {
      * @param addToManager If this {@link Looper} instance should be <b>automatically</b> added to the
      *                     {@link LooperManager}.
      */
-    public Looper(Duration interval, Duration endDelay, boolean addToManager) {
+    Looper(String name, Duration interval, Duration endDelay, boolean addToManager) {
+        this.name = name;
         this.interval = interval;
         this.endDelay = endDelay;
         this.running = false;
@@ -224,7 +229,7 @@ public class Looper {
         this.initRunnables = new ArrayList<>();
 
         if (addToManager)
-            LooperManager.getInstance().addLoop(this);
+            LooperManager.addLoop(this);
     }
 
     /**
@@ -236,8 +241,8 @@ public class Looper {
      * @param endDelay     The {@link Duration} where the <code>end</code> {@link Runnable} will be called
      *                     after finishing.
      */
-    public Looper(Duration interval, Duration endDelay) {
-        this(interval, endDelay, true);
+    Looper(String name, Duration interval, Duration endDelay) {
+        this(name, interval, endDelay, true);
     }
 
     /**
@@ -246,16 +251,16 @@ public class Looper {
      * @param interval The {@link Duration} between <code>periodic</code>/<code>simulationPeriodic</code>
      *                 @link Runnable} calls.
      */
-    public Looper(Duration interval) {
-        this(interval, Duration.ZERO);
+    Looper(String name, Duration interval) {
+        this(name, interval, Duration.ZERO);
     }
 
     /**
      * Constructs a new {@link Looper} with an interval {@link Duration} of
-     * {@link Constants.Looper#PERIODIC_INTERVAL}, and End Delay of <b>ZERO</b>.
+     * {@link Constants.LooperConfig#PERIODIC_INTERVAL}, and End Delay of <b>ZERO</b>.
      */
-    public Looper() {
-        this(PERIODIC_INTERVAL, Duration.ZERO);
+    protected Looper(String name) {
+        this(name, PERIODIC_INTERVAL, Duration.ZERO);
     }
 
     /**
@@ -283,8 +288,20 @@ public class Looper {
 
             if (isRawFinished())
                 return; // just in-case.
+
+            // LOG the POST-CALL performance of the Looper if on DEBUG.
+            if (Robot.verbosity == VerbosityLevel.DEBUG) {
+                long msDiff = nextMillis - currentTimeMillis;
+                Logger.getInstance().recordOutput("Looper/" + getName() + " PERF",
+                        (msDiff > 0) ? ("+" + msDiff + " ms") : (msDiff + " ms")
+                );
+            }
+
             nextMillis = currentTimeMillis + interval.toMillis();
             cycles++;
         }
     }
+
+    /** @return The name of the {@link Looper}. */
+    public String getName() { return this.name; }
 }

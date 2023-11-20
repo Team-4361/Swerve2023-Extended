@@ -6,10 +6,8 @@
 package frc.robot;
 
 
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.util.log.AlertManager;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -34,7 +32,7 @@ public class RobotContainer {
      * joysticks}.
      */
     private void configureBindings() {
-        Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));
+        //Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));
         /*
 
         xyStick.button(8).onTrue(Robot.swerveDrive.toggleFieldOrientedCommand());

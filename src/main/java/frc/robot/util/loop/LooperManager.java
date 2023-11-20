@@ -12,31 +12,47 @@ import java.util.List;
  * @since 0.0.0
  */
 public class LooperManager {
-    private static final LooperManager instance = new LooperManager();
+    private static final ArrayList<Looper> allLoops = new ArrayList<>();
+    private static final List<Looper> removeLoops = new ArrayList<>();
 
-    /** @return The <b>global</b> {@link LooperManager} instance used. */
-    public static LooperManager getInstance() { return instance; }
+    /**
+     * @param loopName The Loop Name to use.
+     * @return A {@link Looper} if <code>groupName</code> exists; null otherwise.
+     */
+    private static Looper getRawLoop(String loopName) {
+        return allLoops.stream()
+                .filter(o -> o.getName().equals(loopName))
+                .findFirst()
+                .orElse(null);
+    }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    private final ArrayList<Looper> allLoops = new ArrayList<>();
-    private final List<Looper> removeLoops = new ArrayList<>();
+    /**
+     * @param loopName The Loop Name to use.
+     * @return A {@link Looper} associated with the <code>loopName</code> parameter. An instance will
+     * <b>automatically</b> be created if invalid.
+     */
+    public static Looper getLoop(String loopName) {
+        if (getRawLoop(loopName) == null) {
+            new Looper(loopName); // NOTE: automatically added to LooperManager!
+        }
+        return getRawLoop(loopName);
+    }
 
     /** @return An {@link ArrayList} of all registered {@link Looper}'s */
-    public ArrayList<Looper> getLoops() {
+    public static ArrayList<Looper> getLoops() {
         return allLoops;
     }
 
     /**
      * Registers a {@link Looper} with the {@link LooperManager}.
      * @param loop     The {@link Looper} to register.
-     * @return         The current {@link LooperManager} with the Registered {@link Looper}.
      */
-    @SuppressWarnings("UnusedReturnValue")
-    public LooperManager addLoop(Looper loop) {
+    public static void addLoop(Looper loop) {
         allLoops.add(loop);
-        return this;
     }
+
+    /** Constructs a new {@link LooperManager}; as this class is only made to contain one Instance, its private. */
+    LooperManager() {}
 
     /**
      * Runs the {@link LooperManager}; expected to be called every <b>20ms</b> by a Robot method.
@@ -45,7 +61,7 @@ public class LooperManager {
      * call. Example: Looper #1 has delay of 15ms, while this method is called every 20ms. As
      * a result, the <b>LOWEST DELAY</b> is 20ms.
      */
-    public synchronized void run() {
+    public static synchronized void run() {
         if (!removeLoops.isEmpty()) {
             // Check if the finish method is ready to be called yet.
             Iterator<Looper> it = removeLoops.iterator();
