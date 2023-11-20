@@ -48,21 +48,10 @@ public class Robot extends LoggedRobot {
         Logger.getInstance().recordMetadata("Git Date", BuildConstants.GIT_DATE);
         Logger.getInstance().recordMetadata("Git Branch", BuildConstants.GIT_BRANCH);
 
-        //noinspection RedundantSuppression
-        switch (BuildConstants.DIRTY) {
-            //noinspection DataFlowIssue
-            case 0:
-                Logger.getInstance().recordMetadata("Git Status", "All changes committed");
-                break;
-            //noinspection DataFlowIssue
-            case 1:
-                Logger.getInstance().recordMetadata("Git Status", "Un-committed changes");
-                break;
-            //noinspection DataFlowIssue
-            default:
-                Logger.getInstance().recordMetadata("Git Status", "Unknown");
-                break;
-        }
+        if (BuildConstants.DIRTY == 1)
+            Logger.getInstance().recordMetadata("Git Status", "Uncommitted.");
+        else
+            Logger.getInstance().recordMetadata("Git Status", "All changes committed.");
 
         // TODO: setup replay/sim mode!
         Logger.getInstance().addDataReceiver(new NT4Publisher());
@@ -73,20 +62,8 @@ public class Robot extends LoggedRobot {
 
         // Add low-priority and periodic instance loops. ALL Runnable(s) will be added to these,
         // preventing a HUGE number of Objects from creating with the RoboRIO's limited RAM/CPU cycles.
-        LooperManager
-                .getLoop(PERIODIC_NAME)
-                .setInterval(PERIODIC_INTERVAL)
-                .start();
-
-        LooperManager
-                .getLoop(LOW_PRIORITY_NAME)
-                .setInterval(LOW_PRIORITY_INTERVAL)
-                .start();
-
-        Alert testAlert = new Alert("TEST", AlertType.WARNING, new AlertCondition(() -> true));
-        AlertManager
-                .getGroup()
-                .addAlert(testAlert);
+        LooperManager.getLoop(PERIODIC_NAME).setInterval(PERIODIC_INTERVAL).start();
+        LooperManager.getLoop(LOW_PRIORITY_NAME).setInterval(LOW_PRIORITY_INTERVAL).start();
 
         BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
         CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
@@ -95,21 +72,20 @@ public class Robot extends LoggedRobot {
 
         // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
         robotContainer = new RobotContainer();
+        /////////////////////////////////////////////////////////////////////////
     }
 
     private static BiConsumer<Command, Boolean> getCommandActivity() {
         Map<String, Integer> commandCounts = new HashMap<>();
-        BiConsumer<Command, Boolean> logCommandFunction =
-                (Command command, Boolean active) -> {
-                    String name = command.getName();
-                    int count = commandCounts.getOrDefault(name, 0) + (active ? 1 : -1);
-                    commandCounts.put(name, count);
-                    Logger.getInstance()
-                            .recordOutput(
-                                    "CommandsUnique/" + name + "_" + Integer.toHexString(command.hashCode()), active);
-                    Logger.getInstance().recordOutput("CommandsAll/" + name, count > 0);
-                };
-        return logCommandFunction;
+        return (Command command, Boolean active) -> {
+            String name = command.getName();
+            int count = commandCounts.getOrDefault(name, 0) + (active ? 1 : -1);
+            commandCounts.put(name, count);
+            Logger.getInstance()
+                    .recordOutput(
+                            "CommandsUnique/" + name + "_" + Integer.toHexString(command.hashCode()), active);
+            Logger.getInstance().recordOutput("CommandsAll/" + name, count > 0);
+        };
     }
 
     /**

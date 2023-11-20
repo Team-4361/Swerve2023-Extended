@@ -1,5 +1,7 @@
 package frc.robot.util.log;
 
+import frc.robot.util.loop.Looper;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +11,7 @@ import java.util.List;
  * @author Eric Gold
  * @since 0.0.0
  */
-public class Alert {
+public class Alert extends Looper {
     private final AlertType type;
     private final String desc;
     private final ArrayList<AlertCondition> conditions;
@@ -27,6 +29,7 @@ public class Alert {
      * @param conditions The {@link AlertCondition}s to be added to the alert.
      */
     public Alert(String desc, AlertType type, AlertCondition... conditions) {
+        super(desc + " Looper"); // init a looper to add actions
         this.desc = desc;
         this.type = type;
         this.thrownPrev = false;
@@ -43,9 +46,7 @@ public class Alert {
      * @param type The {@link AlertType} of the alert.
      */
     public Alert(String desc, AlertType type) {
-        this.desc = desc;
-        this.type = type;
-        this.conditions = new ArrayList<>();
+        this(desc, type, (AlertCondition)null);
     }
 
     /** The {@link AlertType} of the {@link Alert}. */
@@ -57,16 +58,17 @@ public class Alert {
     }
 
     /** @return The Enabled Status of the {@link Alert}. */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isEnabled() {
         boolean isThrown = conditions.stream().anyMatch(AlertCondition::shouldThrow);
-        if (!isThrown)
+        if (!isThrown) {
             enableMillis = -1;
-        else if (enableMillis <= 0) {
+            stop(); // alert is disabled!
+        } else if (enableMillis <= 0) {
             // This is the first time throwing; set the millis.
             thrownPrev = true;
             enableMillis = System.currentTimeMillis();
-
-
+            start(); // alert is enabled!
         }
         return isThrown;
     }
@@ -103,7 +105,7 @@ public class Alert {
      * @param condition The {@link AlertCondition} to add.
      * @return          The current {@link Alert} instance.
      */
-    public Alert addCondition(AlertCondition condition) {
+    public Alert onCondition(AlertCondition condition) {
         conditions.add(condition);
         return this;
     }

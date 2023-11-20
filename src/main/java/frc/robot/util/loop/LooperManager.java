@@ -73,8 +73,6 @@ public class LooperManager {
 
         for (Looper looper : allLoops) {
             if (!looper.isFinished() && !looper.isRunning()) {
-                // start the looper; it's not done or running.
-                looper.start();
                 continue;
             }
             if (looper.isFinished()) {
