@@ -8,12 +8,9 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Temperature;
-import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-import frc.robot.util.log.Alert;
-import frc.robot.util.log.AlertCondition;
-import frc.robot.util.log.AlertManager;
-import frc.robot.util.log.AlertType;
+import frc.robot.util.io.ConditionalAlert;
+import frc.robot.util.io.AlertCondition;
+import frc.robot.util.io.AlertType;
 
 import java.time.Duration;
 
@@ -47,23 +44,22 @@ public class FRCSparkMax extends CANSparkMax {
         super(deviceId, type);
 
         // Add the temperature cut-off alert.
+
+        /*
         AlertManager
                 .getGroup(GROUP_NAME)
-                .addAlert(new Alert(
+                .addAlert(new ConditionalAlert(
                         "Motor " + deviceId + " over-temperature.",
                         AlertType.ERROR, // serious condition; it can cause permanent damage!
                         new AlertCondition(() -> getMotorTemperature() >= cutoffTempC) // enable condition
-                                .setEnableDelay(Duration.ofSeconds(5))  // allow brief periods of over-temp
-                                .setDisableDelay(Duration.ofSeconds(0)) // disable instantly.
-                                .setAutoDisable(true)                   // allow disabling.
+                                .withEnableDelay(Duration.ofSeconds(5))  // allow brief periods of over-temp
+                                .withDisableDelay(Duration.ofSeconds(0)) // disable instantly.
+                                .setAutoDisable(true)                   // allow disabling.,
+
                 )
         );
 
-        // If simulation: set required values.
-        if (RobotBase.isSimulation()) {
-            new DCMotorSim()
-            setSimFreeSpeed(model.getCurrent()
-        }
+         */
     }
 
 

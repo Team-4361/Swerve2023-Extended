@@ -1,9 +1,7 @@
-package frc.robot.util.loop;
+package frc.robot.util.io;
 
 import edu.wpi.first.wpilibj2.command.Subsystem;
-import frc.robot.Constants;
 import frc.robot.Robot;
-import frc.robot.util.log.VerbosityLevel;
 import org.littletonrobotics.junction.Logger;
 
 import java.time.Duration;
@@ -20,8 +18,8 @@ import static frc.robot.Constants.LooperConfig.PERIODIC_INTERVAL;
  * <b>NOTICES:</b>
  * <ol>
  *     <li>
- *         You need to register <b>each</b> {@link Looper} in the {@link LooperManager}
- *         class; this allows the system to run using the {@link LooperManager#run()} method. If
+ *         You need to register <b>each</b> {@link Looper} in the {@link IOManager}
+ *         class; this allows the system to run using the {@link IOManager#run()} method. If
  *         the <code>addToManager</code> option is called in the Constructor, this is done <b>automatically.</b>
  *     </li>
  *     <p></p>
@@ -36,6 +34,7 @@ import static frc.robot.Constants.LooperConfig.PERIODIC_INTERVAL;
  * @author Eric Gold
  * @since 0.0.0
  */
+@SuppressWarnings("UnusedReturnValue")
 public class Looper {
     private final ArrayList<Runnable> periodicRunnables;
     private final ArrayList<Runnable> simRunnables;
@@ -54,33 +53,27 @@ public class Looper {
     private long nextMillis;
 
     /**
-     * Starts the {@link Looper} instance <b>when managed by the {@link LooperManager}
+     * Starts the {@link Looper} instance <b>when managed by the {@link IOManager}
      * or equivalent.</b>
      *
-     * @see LooperManager#run()
-     * @return The started {@link Looper} instance.
+     * @see IOManager#run()
      */
-    public Looper start() {
+    public void start() {
         if (running)
-            return this;
+            return;
 
-        this.running = true;
+        running = true;
         nextMillis = System.currentTimeMillis() + getInterval().toMillis();
-
         initRunnables.forEach(Runnable::run);
-        return this;
     }
 
     /**
-     * Stops the {@link Looper} instance <b>when managed by the {@link LooperManager}
+     * Stops the {@link Looper} instance <b>when managed by the {@link IOManager}
      * or equivalent.</b> This method also resets the <code>nextMillis</code> to
      * account for a potential end delay.
-     *
-     * @return The stopped. {@link Looper} instance.
      */
-    public Looper stop() {
+    public void stop() {
         manFinished = true;
-        return this;
     }
 
     /** @return If the current {@link Looper} instance is <b>running.</b> */
@@ -206,15 +199,15 @@ public class Looper {
     public long getCycles() { return this.cycles; }
 
     /**
-     * Constructs a new {@link Looper} with the input parameters.
+     * Constructs a new {@link Looper} with the input parameters, and is <b>automatically</b>
+     * added to the {@link IOManager}.
+     *
      * @param interval     The {@link Duration} between <code>periodic</code>/<code>simulationPeriodic</code>
      *                     {@link Runnable} calls.
      * @param endDelay     The {@link Duration} where the <code>end</code> {@link Runnable} will be called
      *                     after finishing.
-     * @param addToManager If this {@link Looper} instance should be <b>automatically</b> added to the
-     *                     {@link LooperManager}.
      */
-    Looper(String name, Duration interval, Duration endDelay, boolean addToManager) {
+    Looper(String name, Duration interval, Duration endDelay) {
         this.name = name;
         this.interval = interval;
         this.endDelay = endDelay;
@@ -227,22 +220,6 @@ public class Looper {
         this.simRunnables = new ArrayList<>();
         this.endRunnables = new ArrayList<>();
         this.initRunnables = new ArrayList<>();
-
-        if (addToManager)
-            LooperManager.addLoop(this);
-    }
-
-    /**
-     * Constructs a new {@link Looper} with the input parameters, and is <b>automatically</b>
-     * added to the {@link LooperManager}.
-     *
-     * @param interval     The {@link Duration} between <code>periodic</code>/<code>simulationPeriodic</code>
-     *                     {@link Runnable} calls.
-     * @param endDelay     The {@link Duration} where the <code>end</code> {@link Runnable} will be called
-     *                     after finishing.
-     */
-    Looper(String name, Duration interval, Duration endDelay) {
-        this(name, interval, endDelay, true);
     }
 
     /**
@@ -259,7 +236,7 @@ public class Looper {
      * Constructs a new {@link Looper} with an interval {@link Duration} of
      * {@link Constants.LooperConfig#PERIODIC_INTERVAL}, and End Delay of <b>ZERO</b>.
      */
-    protected Looper(String name) {
+    Looper(String name) {
         this(name, PERIODIC_INTERVAL, Duration.ZERO);
     }
 

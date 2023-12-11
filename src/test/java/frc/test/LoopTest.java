@@ -1,7 +1,6 @@
 package frc.test;
 
-import frc.robot.util.loop.Looper;
-import frc.robot.util.loop.LooperManager;
+import frc.robot.util.io.Looper;
 
 /**
  * This {@link LoopTest} class is designed to test {@link Looper} and

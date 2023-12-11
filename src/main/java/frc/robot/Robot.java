@@ -8,13 +8,13 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import frc.robot.util.log.*;
-import frc.robot.util.loop.LooperManager;
+import frc.robot.util.io.*;
 import frc.robot.util.motor.FRCSparkMax;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -71,22 +71,13 @@ public class Robot extends LoggedRobot {
 
         xbox = new CommandXboxController(0);
 
-        // Add low-priority and periodic instance loops. ALL Runnable(s) will be added to these,
-        // preventing a HUGE number of Objects from creating with the RoboRIO's limited RAM/CPU cycles.
-        LooperManager
-                .getLoop(PERIODIC_NAME)
-                .setInterval(PERIODIC_INTERVAL)
-                .start();
+        IOManager
+                .getLoop("Test")
+                .setEndDelay(Duration.ofSeconds(3))
+                .setMaxCycles(1)
+                .addInit(() -> IOManager.throwAlert(AlertType.ERROR, "Testing!"))
+                .addOnFinished(() -> IOManager.hideAlert(AlertType.ERROR, "Testing!"));
 
-        LooperManager
-                .getLoop(LOW_PRIORITY_NAME)
-                .setInterval(LOW_PRIORITY_INTERVAL)
-                .start();
-
-        Alert testAlert = new Alert("TEST", AlertType.WARNING, new AlertCondition(() -> true));
-        AlertManager
-                .getGroup()
-                .addAlert(testAlert);
 
         BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
         CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
@@ -126,7 +117,7 @@ public class Robot extends LoggedRobot {
         // and running subsystem periodic() methods.  This must be called from the robot's periodic
         // block in order for anything in the Command-based framework to work.
         CommandScheduler.getInstance().run();
-        LooperManager.run();
+        IOManager.run();
     }
 
     @Override public void disabledInit() { CommandScheduler.getInstance().cancelAll(); }

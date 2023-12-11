@@ -1,8 +1,8 @@
-package frc.robot.util.log;
+package frc.robot.util.io;
 
 public enum AlertType {
-    WARNING("[WARN]"),
-    ERROR("[ERR]");
+    WARNING("warnings"),
+    ERROR("errors");
 
     private final String prefix;
 

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.List;
+import java.util.Random;
 
 /**
  * This {@link ExtendedMath} class provides features which are not integrated
@@ -13,6 +14,8 @@ import java.util.List;
  * @since 0.0.0
  */
 public class ExtendedMath {
+    private static final Random rand = new Random();
+
     /**
      * @param digits The number of decimal places to return.
      * @return A rounded {@link Double} to a specific decimal place.

@@ -1,4 +1,4 @@
-package frc.robot.util.log;
+package frc.robot.util.io;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -26,9 +26,7 @@ public class AlertCondition {
     private long enabledTime = -1;
 
     /**
-     * Gets the enable condition supplier.
-     *
-     * @return The enable condition supplier.
+     * @return The {@link Supplier} used to Enable the Condition.
      */
     public Supplier<Boolean> getEnableCondition() {
         return this.enableSupplier;
@@ -44,9 +42,7 @@ public class AlertCondition {
     }
 
     /**
-     * Gets the disable delay.
-     *
-     * @return The disable delay.
+     * @return The minimum {@link Duration} before the error can be automatically removed (if applicable).
      */
     public Duration getDisableDelay() {
         return this.disableDelay;
@@ -76,7 +72,7 @@ public class AlertCondition {
      * @param supplier The enable condition supplier.
      * @return The current AlertCondition instance for method chaining.
      */
-    public AlertCondition setEnableCondition(Supplier<Boolean> supplier) {
+    public AlertCondition withEnableCondition(Supplier<Boolean> supplier) {
         this.enableSupplier = supplier;
         return this;
     }
@@ -87,7 +83,7 @@ public class AlertCondition {
      * @param supplier The disable condition supplier.
      * @return The current AlertCondition instance for method chaining.
      */
-    public AlertCondition setDisableCondition(Supplier<Boolean> supplier) {
+    public AlertCondition withDisableCondition(Supplier<Boolean> supplier) {
         this.disableSupplier = supplier;
         return this;
     }
@@ -98,7 +94,7 @@ public class AlertCondition {
      * @param delay The disable delay.
      * @return The current AlertCondition instance for method chaining.
      */
-    public AlertCondition setDisableDelay(Duration delay) {
+    public AlertCondition withDisableDelay(Duration delay) {
         this.disableDelay = delay;
         return this;
     }
@@ -109,7 +105,7 @@ public class AlertCondition {
      * @param delay The enable delay.
      * @return The current AlertCondition instance for method chaining.
      */
-    public AlertCondition setEnableDelay(Duration delay) {
+    public AlertCondition withEnableDelay(Duration delay) {
         this.enableDelay = delay;
         return this;
     }
