@@ -1,7 +1,6 @@
-package frc.robot.util.measurement;
+package frc.robot.util.math;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import frc.robot.util.math.ExtendedMath;
 
 /**
  * This {@link GearRatio} class enables operations with complex gear-ratios. Unlike other measurement classes,
