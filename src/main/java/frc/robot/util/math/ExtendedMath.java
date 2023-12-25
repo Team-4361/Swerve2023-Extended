@@ -113,6 +113,9 @@ public class ExtendedMath {
         return (double) sum/values.size();
     }
 
+    public static double deadband(double value) { return deadband(value, 0.05); }
+    public static double deadband(double value, double min) { return (Math.abs(value) <= min) ? 0 : value; }
+
     /**
      * Calculates the average of a {@link List} of numbers.
      * @param values The {@link List} to use.

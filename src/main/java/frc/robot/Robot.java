@@ -14,6 +14,8 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.util.io.*;
+import frc.robot.util.joystick.DriveJoystick;
+import frc.robot.util.joystick.DriveXboxController;
 import frc.robot.util.motor.FRCSparkMax;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import static com.revrobotics.CANSparkMaxLowLevel.MotorType.kBrushless;
+import static frc.robot.Constants.Control.*;
 
 
 /**
@@ -37,21 +40,72 @@ import static com.revrobotics.CANSparkMaxLowLevel.MotorType.kBrushless;
  */
 public class Robot extends LoggedRobot {
     public static VerbosityLevel verbosity = VerbosityLevel.DEBUG;
+
     public static PowerDistribution pdh;
-    public static CommandXboxController xbox;
-    public static FRCSparkMax motor;
+    public static DriveXboxController xbox;
+    public static DriveJoystick leftStick;
+    public static DriveJoystick rightStick;
+
+    /**
+     * This method is run when the robot is first started up and should be used for any
+     * initialization code.
+     */
+    @Override
+    public void robotInit() {
+        // region Initialize AdvantageKit logging. (DO NOT TOUCH)
+        Logger.getInstance().recordMetadata("Project Name", BuildConstants.MAVEN_NAME);
+        Logger.getInstance().recordMetadata("Build Date", BuildConstants.BUILD_DATE);
+        Logger.getInstance().recordMetadata("Git SHA", BuildConstants.GIT_SHA);
+        Logger.getInstance().recordMetadata("Git Date", BuildConstants.GIT_DATE);
+        Logger.getInstance().recordMetadata("Git Branch", BuildConstants.GIT_BRANCH);
+
+        //noinspection RedundantSuppression
+        switch (BuildConstants.DIRTY) {
+            //noinspection DataFlowIssue
+            case 0:
+                Logger.getInstance().recordMetadata("Git Status", "All changes committed");
+                break;
+            //noinspection DataFlowIssue
+            case 1:
+                Logger.getInstance().recordMetadata("Git Status", "Un-committed changes");
+                break;
+            //noinspection DataFlowIssue
+            default:
+                Logger.getInstance().recordMetadata("Git Status", "Unknown");
+                break;
+        }
+
+        // TODO: setup replay/sim mode!
+        Logger.getInstance().addDataReceiver(new NT4Publisher());
+        Logger.getInstance().start(); // start logging!
+        // endregion
+
+        leftStick = new DriveJoystick(LEFT_STICK_ID);
+        rightStick = new DriveJoystick(RIGHT_STICK_ID);
+        xbox = new DriveXboxController(XBOX_CONTROLLER_ID);
+        pdh = new PowerDistribution();
+
+        BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
+        CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
+        CommandScheduler.getInstance().onCommandFinish(c -> logCommandFunction.accept(c, false));
+        CommandScheduler.getInstance().onCommandInterrupt(c -> logCommandFunction.accept(c, false));
+
+        // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
+        registerAlerts();
+        configureBindings();
+        // ******************************************************************* //
+    }
 
     private void registerAlerts() {
         IOManager.getAlert("Idle Voltage Low", AlertType.WARNING)
                 .setCondition(() -> Robot.pdh.getVoltage() < 12 && Robot.pdh.getTotalCurrent() <= 2.5);
 
         DriverStation.silenceJoystickConnectionWarning(true);
-
         IOManager.getAlert("Joystick Not Connected", AlertType.ERROR)
                 .setCondition(() ->
-                        !DriverStation.isJoystickConnected(0) ||
-                                !DriverStation.isJoystickConnected(1) ||
-                                !DriverStation.isJoystickConnected(2));
+                        !DriverStation.isJoystickConnected(0)
+                                || !DriverStation.isJoystickConnected(1)
+                                || !DriverStation.isJoystickConnected(2));
     }
 
     /**
@@ -101,54 +155,6 @@ public class Robot extends LoggedRobot {
 
         xbox.leftBumper().onTrue(Commands.runOnce(() -> Robot.pump.toggleVacuum()));
          */
-    }
-
-    /**
-     * This method is run when the robot is first started up and should be used for any
-     * initialization code.
-     */
-    @Override
-    public void robotInit() {
-        // region Initialize AdvantageKit logging. (DO NOT TOUCH)
-        Logger.getInstance().recordMetadata("Project Name", BuildConstants.MAVEN_NAME);
-        Logger.getInstance().recordMetadata("Build Date", BuildConstants.BUILD_DATE);
-        Logger.getInstance().recordMetadata("Git SHA", BuildConstants.GIT_SHA);
-        Logger.getInstance().recordMetadata("Git Date", BuildConstants.GIT_DATE);
-        Logger.getInstance().recordMetadata("Git Branch", BuildConstants.GIT_BRANCH);
-
-        //noinspection RedundantSuppression
-        switch (BuildConstants.DIRTY) {
-            case 0:
-                Logger.getInstance().recordMetadata("Git Status", "All changes committed");
-                break;
-            //noinspection DataFlowIssue
-            case 1:
-                Logger.getInstance().recordMetadata("Git Status", "Un-committed changes");
-                break;
-            //noinspection DataFlowIssue
-            default:
-                Logger.getInstance().recordMetadata("Git Status", "Unknown");
-                break;
-        }
-
-        // TODO: setup replay/sim mode!
-        Logger.getInstance().addDataReceiver(new NT4Publisher());
-        Logger.getInstance().start(); // start logging!
-        // endregion
-
-        xbox = new CommandXboxController(0);
-        pdh = new PowerDistribution();
-        motor = new FRCSparkMax(2, kBrushless, DCMotor.getNEO(1));
-
-        BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
-        CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
-        CommandScheduler.getInstance().onCommandFinish(c -> logCommandFunction.accept(c, false));
-        CommandScheduler.getInstance().onCommandInterrupt(c -> logCommandFunction.accept(c, false));
-
-        // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
-        registerAlerts();
-        configureBindings();
-        // ******************************************************************* //
     }
 
     private static BiConsumer<Command, Boolean> getCommandActivity() {
