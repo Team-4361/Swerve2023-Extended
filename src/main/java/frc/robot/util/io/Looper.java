@@ -2,10 +2,13 @@ package frc.robot.util.io;
 
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Robot;
+import frc.robot.util.preset.PresetMap;
 import org.littletonrobotics.junction.Logger;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import static frc.robot.Constants.LooperConfig.PERIODIC_INTERVAL;
 
@@ -33,6 +36,7 @@ import static frc.robot.Constants.LooperConfig.PERIODIC_INTERVAL;
  *
  * @author Eric Gold
  * @since 0.0.0
+ * @version 0.0.2
  */
 @SuppressWarnings("UnusedReturnValue")
 public class Looper {
@@ -40,8 +44,10 @@ public class Looper {
     private final ArrayList<Runnable> simRunnables;
     private final ArrayList<Runnable> endRunnables;
     private final ArrayList<Runnable> initRunnables;
+
     private final String name;
 
+    private Supplier<Boolean> finishSupplier;
     private Duration interval;
     private Duration endDelay;
     private boolean running;
@@ -68,6 +74,19 @@ public class Looper {
     }
 
     /**
+     * Sets the {@link Supplier} used to determine if {@link #isFinished()} is true.
+     * @param supplier The Boolean {@link Supplier} to use.
+     * @return The current {@link Looper} with the modification.
+     */
+    public Looper setFinishedSupplier(Supplier<Boolean> supplier) {
+        this.finishSupplier = supplier;
+        return this;
+    }
+
+    /** @return The <b>optional</b> {@link Supplier} used to determine if {@link #isFinished()} is true. */
+    public Optional<Supplier<Boolean>> getFinishedSupplier() { return Optional.ofNullable(finishSupplier); }
+
+    /**
      * Stops the {@link Looper} instance <b>when managed by the {@link IOManager}
      * or equivalent.</b> This method also resets the <code>nextMillis</code> to
      * account for a potential end delay.
@@ -92,7 +111,9 @@ public class Looper {
      * method, this does not care about the running status.
      */
     private boolean isRawFinished() {
-        return (manFinished || maxCycles > 0 && cycles >= maxCycles);
+        return manFinished ||
+                (maxCycles > 0 && cycles >= maxCycles) ||
+                (finishSupplier != null && finishSupplier.get());
     }
 
     /**

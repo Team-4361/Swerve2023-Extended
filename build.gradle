@@ -113,8 +113,10 @@ wpi.java.configureExecutableTasks(jar)
 wpi.java.configureTestTasks(test)
 
 // Configure string concat to always inline compile
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add '-XDstringConcat=inline'
+    options.compilerArgs.add '-Xlint:unchecked'
+    options.compilerArgs.add '-Werror'
 }
 
 project.compileJava.dependsOn(createVersionFile)

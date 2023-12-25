@@ -2,6 +2,7 @@ package frc.robot.util.math;
 
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 import static edu.wpi.first.units.Units.Meters;
 
@@ -46,4 +47,5 @@ public class PeakMotorDistance {
     public double metersToRotation(double currentDistance) {
         return (currentDistance / maxDistance.in(Meters)) * maxRotation;
     }
+
 }

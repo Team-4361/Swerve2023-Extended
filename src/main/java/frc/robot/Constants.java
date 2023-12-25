@@ -1,6 +1,12 @@
 package frc.robot;
 
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.util.io.IOManager;
+import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
+
 import java.time.Duration;
+import java.util.function.Supplier;
 
 /**
  * This {@link Constants} class is an easy-to-use place for fixed value storage (ex. motor/controller IDs,
@@ -22,106 +28,34 @@ public class Constants {
     }
 
     public static class AlertConfig {
-        public static final String GROUP_NAME = "Alerts";
+        public static final Supplier<Long> ALERT_PERIODIC_MS = () -> (long)(DriverStation.isEnabled() ? 1000 : 3000);
+        public static final String STRING_HIGH_PERIODIC_MS = "Slow main Thread loop (>= 25ms)";
+
+        /** The {@link String} used when a Motor is stalled/over-temp. Use '%ID%' to reference the ID. */
+        public static final String STRING_MOTOR_OVER_TEMP = "Motor #%ID% stalled/over-temp; output disabled.";
+
+        public static final String STRING_SWERVE_CONFIG_FAIL = "Swerve Config Failed! DO NOT DRIVE!";
     }
 
     /**
-     * Holds all {@link Constants} for the {@link LooperManager} class. This mainly holds the milliseconds for
+     * Holds all {@link Constants} for the {@link IOManager} class. This mainly holds the milliseconds for
      * Normal and Simulation operations.
      */
     public static class LooperConfig {
         /** The <b>default</b> millisecond loop time. Note: this can be overridden per Looper interface. */
-        public static final String PERIODIC_NAME = "PERIODIC";
+        public static final String STRING_PERIODIC_NAME = "PERIODIC";
         public static final Duration PERIODIC_INTERVAL = Duration.ofMillis(20);
 
-        public static final String LOW_PRIORITY_NAME = "LOW-PRIORITY";
+        public static final String STRING_LOW_PRIORITY_NAME = "LOW-PRIORITY";
         public static final Duration LOW_PRIORITY_INTERVAL = Duration.ofSeconds(3);
     }
 
-
-    /*
-    public static class Chassis {
-        public static final GearRatio DRIVE_RATIO = GearRatio.fromRatio(6.86);
-        public static final GearRatio TURN_RATIO = GearRatio.fromRatio(12.8);
-        public static final Distance WHEEL_SIZE = Distance.fromInches(4);
-        public static final Distance SIDE_LENGTH = Distance.fromInches(26);
-
-        public static final SwerveVelocities MAX_VELOCITY = new SwerveVelocities(
-                Velocity.fromMPS(4.4),
-                Velocity.fromMPS(4.4),
-                AngularVelocity.fromRPM(4000)
-        );
-
-        public static final PIDController DRIVE_CONTROLLER = new PIDController(0.01, 0, 0);
-        public static final PIDController TURN_CONTROLLER = new PIDController(0.02, 0, 0);
-
-        public static final SwerveModuleConfiguration FL_CONFIG = new SwerveModuleConfiguration(
-                1,
-                2,
-                0,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(181.45),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.FRONT_LEFT,
-                MAX_VELOCITY
-        );
-
-        public static final SwerveModuleConfiguration FR_CONFIG = new SwerveModuleConfiguration(
-                3,
-                4,
-                1,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(-226.32),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.FRONT_RIGHT,
-                MAX_VELOCITY
-        );
-
-        public static final SwerveModuleConfiguration BL_CONFIG = new SwerveModuleConfiguration(
-                5,
-                6,
-                2,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(12.71),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.BACK_LEFT,
-                MAX_VELOCITY
-        );
-
-        public static final SwerveModuleConfiguration BR_CONFIG = new SwerveModuleConfiguration(
-                7,
-                8,
-                3,
-                DRIVE_RATIO,
-                TURN_RATIO,
-                Rotation2d.fromDegrees(169.38),
-                DRIVE_CONTROLLER,
-                TURN_CONTROLLER,
-                WHEEL_SIZE,
-                SwerveModuleSide.BACK_RIGHT,
-                MAX_VELOCITY
-        );
-
-        public static final SwerveChassisConfiguration CHASSIS_CONFIG = new SwerveChassisConfiguration(
-                SIDE_LENGTH,
-                new AHRS(SPI.Port.kMXP),
-                FL_CONFIG,
-                FR_CONFIG,
-                BL_CONFIG,
-                BR_CONFIG,
-                false
-        );
+    public static class DriveConfig {
+        public static final double MAX_SPEED_MPS = Units.feetToMeters(14.5);
+        public static final TelemetryVerbosity SWERVE_TELEMETRY = TelemetryVerbosity.HIGH;
     }
 
+    /*
     public static class VacuumValues {
         public static final int[] VACUUM_MOTOR_IDS = new int[]{20, 16, 13, 11};
         public static final double VACUUM_PUMP_SPEED = 0.45;
@@ -133,7 +67,6 @@ public class Constants {
         };
 
         public static final int[] VACUUM_SENSORS = new int[]{0, 1, 2, 3};
-
         public static final double VACUUM_THRESHOLD = 1;
 
     }
@@ -143,20 +76,6 @@ public class Constants {
         public static final int WRIST_MOTOR_ID = 22;
     }
 
-    public static class ClimberArmValues {
-        public static final int ROTATION_MOTOR_ID = 10;
-        public static final int EXTENSION_MOTOR_ID = 21;
-
-        public static final GearRatio ROTATION_GEAR_RATIO = GearRatio.fromRatio(735);
-
-        public static final PeakMotorDistance EXTENSION_LIMIT = new PeakMotorDistance(
-                Distance.fromValue(54.0, INCHES),
-                94.09
-        );
-        // old was 88 rot and 50.5 inches
-
-        public static final double WRIST_ROLLOVER_VALUE = 13180;
-    }
 
     public static class ClimberPresets {
         public static final String ROTATION_NAME = "CLI ROT";

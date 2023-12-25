@@ -3,19 +3,28 @@ package frc.robot.util.motor;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel;
 import com.revrobotics.REVLibError;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.jni.CANSparkMaxJNI;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Temperature;
-import frc.robot.util.io.ConditionalAlert;
-import frc.robot.util.io.AlertCondition;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import frc.robot.Constants;
+import frc.robot.util.io.Alert;
 import frc.robot.util.io.AlertType;
-
-import java.time.Duration;
+import frc.robot.util.io.IOManager;
+import frc.robot.util.math.GearRatio;
+import swervelib.math.SwerveMath;
+import swervelib.parser.SwerveModuleConfiguration;
 
 import static edu.wpi.first.units.Units.Celsius;
-import static frc.robot.Constants.AlertConfig.GROUP_NAME;
+import static frc.robot.Constants.AlertConfig.STRING_MOTOR_OVER_TEMP;
+import static frc.robot.Constants.LooperConfig.STRING_PERIODIC_NAME;
 
 /**
  * This class enables a safe interaction with {@link CANSparkMax} motors; temperature control and watchdogs
@@ -23,14 +32,11 @@ import static frc.robot.Constants.AlertConfig.GROUP_NAME;
  *
  * @author Eric Gold
  * @since 0.0.0
+ * @version 0.0.1
  */
 public class FRCSparkMax extends CANSparkMax {
-    /** The {@link Temperature} in which the Motor will be temporarily disabled. */
-    public static final Measure<Temperature> DEFAULT_CUTOFF_TEMP = Celsius.of(60);
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    private double cutoffTempC;
+    private final Alert conditionAlert;
+    private long lastSimUpdateMillis;
 
     /**
      * Create a new object to control a SPARK MAX motor Controller
@@ -39,30 +45,53 @@ public class FRCSparkMax extends CANSparkMax {
      * @param type     The motor type connected to the controller. Brushless motor wires must be connected to their
      *                 matching colors and the hall sensor must be plugged in. Brushed motors must be connected to the
      *                 Red and Black terminals only.
+     * @param model    The {@link DCMotor} module which best represents the {@link FRCSparkMax}
      */
     public FRCSparkMax(int deviceId, MotorType type, DCMotor model) {
         super(deviceId, type);
 
-        // Add the temperature cut-off alert.
+        conditionAlert = IOManager.getAlert(STRING_MOTOR_OVER_TEMP.replace("%ID%", String.valueOf(deviceId)), AlertType.ERROR)
+                .setEnableDelay(2000)
+                .setDisableDelay(2000)
+                .setPersistence(false)
+                .setOneUse(false);
 
-        /*
-        AlertManager
-                .getGroup(GROUP_NAME)
-                .addAlert(new ConditionalAlert(
-                        "Motor " + deviceId + " over-temperature.",
-                        AlertType.ERROR, // serious condition; it can cause permanent damage!
-                        new AlertCondition(() -> getMotorTemperature() >= cutoffTempC) // enable condition
-                                .withEnableDelay(Duration.ofSeconds(5))  // allow brief periods of over-temp
-                                .withDisableDelay(Duration.ofSeconds(0)) // disable instantly.
-                                .setAutoDisable(true)                   // allow disabling.,
+        if (type == MotorType.kBrushed) {
+            IOManager.warn(this, "Motor #" + deviceId + " is brushed. No stall detection allowed.");
+            conditionAlert.setCondition(() -> getMotorTemperature() >= 60);
+            return;
+        }
 
-                )
+        // The motor is brushless; use the encoder to detect velocity for stall detection.
+        conditionAlert.setCondition(() -> getMotorTemperature() >= 60 ||
+                (getOutputCurrent() >= model.stallCurrentAmps-20 && getEncoder().getVelocity() <= 10)
         );
 
-         */
+        if (RobotBase.isSimulation()) {
+            IOManager.warnOnFail(
+                    setSimFreeSpeed(Units.radiansPerSecondToRotationsPerMinute(model.freeSpeedRadPerSec))
+            );
+            IOManager.warnOnFail(setSimStallTorque(model.stallTorqueNewtonMeters));
+
+            IOManager.debug(this, "Adding SparkMax ID #" + deviceId + " to simulation.");
+            lastSimUpdateMillis = System.currentTimeMillis();
+            IOManager
+                    .getLoop(STRING_PERIODIC_NAME)
+                    .addPeriodic(() -> {
+                        final RelativeEncoder relativeEncoder = getEncoder();
+                        final double position = relativeEncoder.getPosition();
+                        final double velocity = relativeEncoder.getVelocity();
+                        final double positionConversionFactor = relativeEncoder.getPositionConversionFactor();
+
+                        relativeEncoder.setPosition(
+                                position + velocity *
+                                        (System.currentTimeMillis() - lastSimUpdateMillis) / 60000.0
+                                        * positionConversionFactor
+                        );
+                        lastSimUpdateMillis = System.currentTimeMillis();
+                    });
+        }
     }
-
-
 
     /**
      * Set the free speed of the motor being simulated.
@@ -107,19 +136,16 @@ public class FRCSparkMax extends CANSparkMax {
 
     @Override
     public void set(final double speed) {
-        super.set(MathUtil.clamp(speed, -1, 1));
+        if (conditionAlert.isEnabled())
+            super.set(0);
+        else
+            super.set(MathUtil.clamp(speed, -1, 1));
     }
 
     public void set(final ControlType controlType, final double value) {
-        this.getPIDController().setReference(value, controlType);
+        if (conditionAlert.isEnabled())
+            this.getPIDController().setReference(0, controlType);
+        else
+            this.getPIDController().setReference(value, controlType);
     }
-
-    /**
-     * Sets the {@link Temperature} in which the Motor will be temporarily disabled.
-     * @param tempC The desired {@link Temperature} in Celsius.
-     */
-    public void setCutoffTemp(double tempC) { cutoffTempC = tempC; }
-
-    /** The {@link Temperature} in which the Motor will be temporarily disabled. */
-    public double getCutoffTemp() { return cutoffTempC; }
 }

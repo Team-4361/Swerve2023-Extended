@@ -12,8 +12,11 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static frc.robot.Constants.AlertConfig.ALERT_PERIODIC_MS;
+import static frc.robot.Constants.AlertConfig.STRING_HIGH_PERIODIC_MS;
+
 /**
- * This {@link IOManager} class is designed to control ALL {@link Looper} and {@link ConditionalAlert} instances. Since
+ * This {@link IOManager} class is designed to control ALL {@link Looper} and {@link Alert} instances. Since
  * the original two managers were lightweight and operated in a similar fashion, the decision was made to combine them.
  *
  * @author Eric Gold
@@ -21,63 +24,25 @@ import java.util.function.Supplier;
  */
 public class IOManager {
     private static final List<Looper> LOOPS = new ArrayList<>();
-    private static final List<ConditionalAlert> CONDITIONAL_ALERTS = new ArrayList<>();
-    private static final AlertType[] ALERT_ORDER = new AlertType[] { AlertType.ERROR, AlertType.WARNING };
+    private static final List<Alert> ALERTS = new ArrayList<>();
     private static final RuntimeMXBean MX_BEAN = ManagementFactory.getRuntimeMXBean();
-    private static final HashMap<String, ArrayList<String>> SIMPLE_ALERTS = new HashMap<>();
 
-    private static long lastLoopUpdate = System.currentTimeMillis();
-    private static long lastAlertUpdate = System.currentTimeMillis();
+    private static long lastLoopUpdate = 0;
+    private static long lastAlertUpdate = 0;
 
-    static {
-        for (AlertType type : ALERT_ORDER) {
-            SIMPLE_ALERTS.put(type.getPrefix(), new ArrayList<>());
-        }
-    }
-
-    /**
-     * Throws an on-demand <code>simple Alert</code> to the Dashboard.
-     *
-     * @param type The {@link AlertType} to use.
-     * @param name The name to display.
-     * @return     Successful if the Alert is un-displayed; false otherwise.
-     */
-    public static boolean throwAlert(AlertType type, String name) {
-        ArrayList<String> list = SIMPLE_ALERTS.get(type.getPrefix());
-        if (list.contains(name))
-            return false;
-        return list.add(name);
-    }
-
-    public static void throwAlert(AlertType type, String name, Supplier<Boolean> condition, boolean persist) {
-        if (condition.get()) {
-            throwAlert(type, name);
-        } else if (!persist) {
-            hideAlert(type, name);
-        }
-    }
-
-    public static void throwAlert(AlertType type, String name, Supplier<Boolean> condition) {
-        throwAlert(type, name, condition, false);
-    }
-
-    /**
-     * Removes an on-demand <code>simple Alert</code> from the Dashboard.
-     *
-     * @param type The {@link AlertType} to hide.
-     * @param name The name to hide.
-     * @return     Successfully if the Alert is found and displayed; false otherwise.
-     */
-    public static boolean hideAlert(AlertType type, String name) {
-        ArrayList<String> list = SIMPLE_ALERTS.get(type.getPrefix());
-        if (!list.contains(name))
-            return false;
-        return list.remove(name);
-    }
+    private static final long testModeDisable = System.currentTimeMillis() + 5000;
 
     public static List<Looper> getLoops() { return LOOPS; }
+    public static List<Alert> getAlerts() { return ALERTS; }
 
-    public static List<ConditionalAlert> getAutoAlerts() { return CONDITIONAL_ALERTS; }
+    static {
+        getAlert(STRING_HIGH_PERIODIC_MS, AlertType.WARNING)
+                .setCondition(() -> System.currentTimeMillis() - lastLoopUpdate >= 25)
+                .setEnableDelay(2000)
+                .setDisableDelay(2000)
+                .setPersistence(false)
+                .setOneUse(false);
+    }
 
     public static Looper getLoop(String loopName) {
         Looper loop = LOOPS.stream()
@@ -89,13 +54,13 @@ public class IOManager {
         return loop;
     }
 
-    public static ConditionalAlert getConditionalAlert(String alertName, AlertType type) {
-        ConditionalAlert alert = CONDITIONAL_ALERTS.stream()
-                .filter(o -> o.getName().equals(alertName) && o.getType() == type)
+    public static Alert getAlert(String alertName, AlertType type) {
+        Alert alert = ALERTS.stream()
+                .filter(o -> o.getName().equalsIgnoreCase(alertName) && o.getType() == type)
                 .findFirst()
-                .orElseGet(() -> new ConditionalAlert(alertName, type));
-        if (!CONDITIONAL_ALERTS.contains(alert))
-            CONDITIONAL_ALERTS.add(alert);
+                .orElseGet(() -> new Alert(alertName, type));
+        if (!ALERTS.contains(alert))
+            ALERTS.add(alert);
         return alert;
     }
 
@@ -161,14 +126,15 @@ public class IOManager {
      * Broadcasts a DEBUG message to the RIOLOG with a null sender.
      * @param text The {@link String} to broadcast.
      */
+    @Deprecated(forRemoval = true)
     public static void debug(String text) { debug(null, text); }
 
     /**
      * Broadcasts an INFO message to the RIOLOG with a null sender.
      * @param text The {@link String} to broadcast.
      */
+    @Deprecated(forRemoval = true)
     public static void info(String text) { info(null, text); }
-
 
     /**
      * Formats the uptime as a string.
@@ -222,26 +188,22 @@ public class IOManager {
         ArrayList<String> output = new ArrayList<>();
 
         // First, check for any conditional alerts which may be thrown.
-        if (!CONDITIONAL_ALERTS.isEmpty()) {
-            Iterator<ConditionalAlert> it = CONDITIONAL_ALERTS.iterator();
+        if (!ALERTS.isEmpty()) {
+            Iterator<Alert> it = ALERTS.iterator();
             while (it.hasNext()) {
-                ConditionalAlert a = it.next();
+                Alert a = it.next();
                 if (a.shouldRemove()) {
                     it.remove();
                     continue;
                 }
-                if (!a.isEnabled() || a.getType() != type)
+                if ((!a.isEnabled() && System.currentTimeMillis() > testModeDisable) || a.getType() != type)
                     continue;
                 output.add(a.getName());
             }
         }
 
-        // Next, check for simple alerts which are always thrown unless disabled.
-        try {
-            output.addAll(SIMPLE_ALERTS.get(type.getPrefix()));
-        } catch (Exception ex) {
-            warn("Simple Alert threw Exception; attempting creation...");
-            output.add(type.getPrefix());
+        if (type == AlertType.ERROR && System.currentTimeMillis() <= testModeDisable) {
+            output.add("----- DASHBOARD TEST: AUTO CLEAR -----");
         }
 
         return output.toArray(String[]::new);
@@ -256,11 +218,11 @@ public class IOManager {
             Looper looper = it.next();
             if (!looper.isFinished() && !looper.isRunning()) {
                 looper.start();
-                debug("Starting loop!");
+                debug(IOManager.class, "Executing loop (\"" + looper.getName() + "\")");
                 continue;
             }
             if (looper.isFinished()) {
-                debug("Removing loop!");
+                debug(IOManager.class, "Terminating loop (\"" + looper.getName() + "\")");
                 it.remove();
                 continue;
             }
@@ -269,14 +231,13 @@ public class IOManager {
 
         lastLoopUpdate = System.currentTimeMillis();
 
-        if (System.currentTimeMillis() - lastAlertUpdate <= (DriverStation.isEnabled() ? 1000 : 1000))
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        if (System.currentTimeMillis() - lastAlertUpdate <= ALERT_PERIODIC_MS.get())
             return;
-
-        debug("Updating alerts!");
 
         Sendable alertData = builder -> {
             builder.setSmartDashboardType("Alerts");
-            for (AlertType type : ALERT_ORDER) {
+            for (AlertType type : AlertType.DASHBOARD_ORDER) {
                 builder.addStringArrayProperty(type.getPrefix(), () -> getEnabledAlerts.apply(type), null);
             }
         };

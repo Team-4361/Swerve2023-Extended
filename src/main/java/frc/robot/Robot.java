@@ -5,21 +5,28 @@
 
 package frc.robot;
 
+import com.revrobotics.CANSparkMaxLowLevel;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.util.io.*;
 import frc.robot.util.motor.FRCSparkMax;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
+import swervelib.motors.SparkMaxSwerve;
+import swervelib.parser.SwerveDriveConfiguration;
+import swervelib.parser.SwerveModulePhysicalCharacteristics;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import static frc.robot.Constants.LooperConfig.*;
+import static com.revrobotics.CANSparkMaxLowLevel.MotorType.kBrushless;
 
 
 /**
@@ -29,11 +36,72 @@ import static frc.robot.Constants.LooperConfig.*;
  * project.
  */
 public class Robot extends LoggedRobot {
-    private RobotContainer robotContainer;
-
     public static VerbosityLevel verbosity = VerbosityLevel.DEBUG;
+    public static PowerDistribution pdh;
     public static CommandXboxController xbox;
     public static FRCSparkMax motor;
+
+    private void registerAlerts() {
+        IOManager.getAlert("Idle Voltage Low", AlertType.WARNING)
+                .setCondition(() -> Robot.pdh.getVoltage() < 12 && Robot.pdh.getTotalCurrent() <= 2.5);
+
+        DriverStation.silenceJoystickConnectionWarning(true);
+
+        IOManager.getAlert("Joystick Not Connected", AlertType.ERROR)
+                .setCondition(() ->
+                        !DriverStation.isJoystickConnected(0) ||
+                                !DriverStation.isJoystickConnected(1) ||
+                                !DriverStation.isJoystickConnected(2));
+    }
+
+    /**
+     * Use this method to define your trigger->command mappings. Triggers can be created via the
+     * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary
+     * predicate, or via the named factories in {@link
+     * edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses for {@link
+     * CommandXboxController Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller
+     * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
+     * joysticks}.
+     */
+    private void configureBindings() {
+        //Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));
+        /*
+
+        xyStick.button(8).onTrue(Robot.swerveDrive.toggleFieldOrientedCommand());
+        xyStick.button(12).onTrue(Robot.swerveDrive.resetGyroCommand());
+
+        ///////////////////////////////// XBOX CONTROLS
+
+        xbox.a().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(ZERO_POSITION_NAME)));
+        xbox.b().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(FLOOR_CUBE_NAME)));
+        xbox.y().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(HUMAN_STATION_NAME)));
+        xbox.x().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(MID_CONE_NAME)));
+
+        xbox.povDown().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(FLOOR_CONE_NAME)));
+        xbox.povLeft().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(MANUAL_STATION_NAME)));
+        xbox.povUp().onTrue(Robot.pump.openVacuumCommand());
+
+        xbox.rightBumper().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(HIGH_CONE_NAME)));
+
+        xbox.rightTrigger().whileTrue(Commands.runEnd(
+                () -> Robot.wrist.translateMotor(-xbox.getRightTriggerAxis()/2),
+                () -> Robot.wrist.translateMotor(0)
+        ));
+
+        xbox.leftTrigger().whileTrue(Commands.runEnd(
+                () -> Robot.wrist.translateMotor(xbox.getLeftTriggerAxis()/2),
+                () -> Robot.wrist.translateMotor(0)
+        ));
+
+        xbox.leftStick().onTrue(Commands.runOnce(() -> {
+            Robot.wrist.resetEncoder();
+            Robot.arm.getRotation().resetEncoder();
+            Robot.arm.getExtension().resetEncoder();
+        }));
+
+        xbox.leftBumper().onTrue(Commands.runOnce(() -> Robot.pump.toggleVacuum()));
+         */
+    }
 
     /**
      * This method is run when the robot is first started up and should be used for any
@@ -50,7 +118,6 @@ public class Robot extends LoggedRobot {
 
         //noinspection RedundantSuppression
         switch (BuildConstants.DIRTY) {
-            //noinspection DataFlowIssue
             case 0:
                 Logger.getInstance().recordMetadata("Git Status", "All changes committed");
                 break;
@@ -70,14 +137,8 @@ public class Robot extends LoggedRobot {
         // endregion
 
         xbox = new CommandXboxController(0);
-
-        IOManager
-                .getLoop("Test")
-                .setEndDelay(Duration.ofSeconds(3))
-                .setMaxCycles(1)
-                .addInit(() -> IOManager.throwAlert(AlertType.ERROR, "Testing!"))
-                .addOnFinished(() -> IOManager.hideAlert(AlertType.ERROR, "Testing!"));
-
+        pdh = new PowerDistribution();
+        motor = new FRCSparkMax(2, kBrushless, DCMotor.getNEO(1));
 
         BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
         CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
@@ -85,22 +146,22 @@ public class Robot extends LoggedRobot {
         CommandScheduler.getInstance().onCommandInterrupt(c -> logCommandFunction.accept(c, false));
 
         // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
-        robotContainer = new RobotContainer();
+        registerAlerts();
+        configureBindings();
+        // ******************************************************************* //
     }
 
     private static BiConsumer<Command, Boolean> getCommandActivity() {
         Map<String, Integer> commandCounts = new HashMap<>();
-        BiConsumer<Command, Boolean> logCommandFunction =
-                (Command command, Boolean active) -> {
-                    String name = command.getName();
-                    int count = commandCounts.getOrDefault(name, 0) + (active ? 1 : -1);
-                    commandCounts.put(name, count);
-                    Logger.getInstance()
-                            .recordOutput(
-                                    "CommandsUnique/" + name + "_" + Integer.toHexString(command.hashCode()), active);
-                    Logger.getInstance().recordOutput("CommandsAll/" + name, count > 0);
-                };
-        return logCommandFunction;
+        return (Command command, Boolean active) -> {
+            String name = command.getName();
+            int count = commandCounts.getOrDefault(name, 0) + (active ? 1 : -1);
+            commandCounts.put(name, count);
+            Logger.getInstance()
+                    .recordOutput(
+                            "CommandsUnique/" + name + "_" + Integer.toHexString(command.hashCode()), active);
+            Logger.getInstance().recordOutput("CommandsAll/" + name, count > 0);
+        };
     }
 
     /**
@@ -112,12 +173,16 @@ public class Robot extends LoggedRobot {
      */
     @Override
     public void robotPeriodic() {
+        // ************************* DO NOT TOUCH ************************* //
+
         // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
         // commands, running already-scheduled commands, removing finished or interrupted commands,
         // and running subsystem periodic() methods.  This must be called from the robot's periodic
         // block in order for anything in the Command-based framework to work.
         CommandScheduler.getInstance().run();
         IOManager.run();
+
+        // ************************* DO NOT TOUCH ************************* //
     }
 
     @Override public void disabledInit() { CommandScheduler.getInstance().cancelAll(); }
