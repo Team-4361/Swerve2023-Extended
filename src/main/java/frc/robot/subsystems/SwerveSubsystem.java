@@ -26,6 +26,7 @@ import java.util.Map;
 
 import frc.robot.util.io.AlertType;
 import frc.robot.util.io.IOManager;
+import frc.robot.util.joystick.DriveHIDBase;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.parser.SwerveControllerConfiguration;
@@ -34,23 +35,15 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 
 import static frc.robot.Constants.AlertConfig.STRING_SWERVE_CONFIG_FAIL;
+import static frc.robot.Constants.DriveConfig.MAX_SPEED_MPS;
 import static frc.robot.Constants.DriveConfig.SWERVE_TELEMETRY;
 
 public class SwerveSubsystem extends SubsystemBase {
 
-    /**
-     * Swerve drive object.
-     */
     private SwerveDrive swerveDrive;
-    /**
-     * Maximum speed of the robot in meters per second, used to limit acceleration.
-     */
-    public double maximumSpeed = Units.feetToMeters(14.5);
-    /**
-     * The auto builder for PathPlanner, there can only ever be one created so we save it just incase we generate
-     * multiple paths with events.
-     */
     private SwerveAutoBuilder autoBuilder = null;
+    public boolean teleopFieldOriented = true;
+    public boolean teleopClosedLoop = true;
 
     /**
      * Initialize {@link SwerveDrive} with the directory provided.
@@ -62,7 +55,7 @@ public class SwerveSubsystem extends SubsystemBase {
         SwerveDriveTelemetry.verbosity = SWERVE_TELEMETRY;
 
         try {
-            swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed);
+            swerveDrive = new SwerveParser(directory).createSwerveDrive(MAX_SPEED_MPS);
 
             // Heading correction should only be used while controlling the robot via angle.
             swerveDrive.setHeadingCorrection(false);
@@ -94,6 +87,43 @@ public class SwerveSubsystem extends SubsystemBase {
                 rotation,
                 fieldRelative,
                 false); // Open loop is disabled since it shouldn't be used most of the time.
+    }
+
+    /**
+     * Drives the Robot using one Joystick.
+     * @param stick The {@link DriveHIDBase} to use.
+     */
+    public void drive(DriveHIDBase stick, boolean fieldRelative, boolean isOpenLoop) {
+        // Calculate the maximum speed based on XY and Twist.
+        double xS = stick.getRobotX() * MAX_SPEED_MPS;
+        double yS = stick.getRobotY() * MAX_SPEED_MPS;
+        double tS = stick.getRobotTwist() * swerveDrive.swerveController.config.maxAngularVelocity;
+
+        ChassisSpeeds speeds = new ChassisSpeeds(xS, yS, tS);
+
+        if (fieldRelative)
+            speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, swerveDrive.getYaw());
+
+        swerveDrive.drive(speeds, isOpenLoop, new Translation2d());
+    }
+
+    /**
+     * Drives the Robot using two Joysticks: one for XY and one for Twist.
+     * @param xyStick The {@link DriveHIDBase} to use for directional control.
+     * @param twistStick The {@link DriveHIDBase} to use for twisting.
+     */
+    public void drive(DriveHIDBase xyStick, DriveHIDBase twistStick, boolean fieldRelative, boolean isOpenLoop) {
+        // Calculate the maximum speed based on XY and Twist.
+        double xS = xyStick.getRobotX() * MAX_SPEED_MPS;
+        double yS = xyStick.getRobotY() * MAX_SPEED_MPS;
+        double tS = twistStick.getRobotTwist() * swerveDrive.swerveController.config.maxAngularVelocity;
+
+        ChassisSpeeds speeds = new ChassisSpeeds(xS, yS, tS);
+
+        if (fieldRelative)
+            speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, swerveDrive.getYaw());
+
+        swerveDrive.drive(speeds, isOpenLoop, new Translation2d());
     }
 
     /**
@@ -165,41 +195,6 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The yaw angle
      */
     public Rotation2d getHeading() { return swerveDrive.getYaw(); }
-
-    /**
-     * Get the chassis speeds based on controller input of 2 joysticks. One for speeds in which direction. The other for
-     * the angle of the robot.
-     *
-     * @param xInput   X joystick input for the robot to move in the X direction.
-     * @param yInput   Y joystick input for the robot to move in the Y direction.
-     * @param headingX X joystick which controls the angle of the robot.
-     * @param headingY Y joystick which controls the angle of the robot.
-     * @return {@link ChassisSpeeds} which can be sent to th Swerve Drive.
-     */
-    public ChassisSpeeds getTargetSpeeds(double xInput, double yInput, double headingX, double headingY) {
-        xInput = Math.pow(xInput, 3);
-        yInput = Math.pow(yInput, 3);
-        return swerveDrive.swerveController.getTargetSpeeds(
-                xInput, yInput, headingX, headingY, getHeading().getRadians(), maximumSpeed);
-    }
-
-    /**
-     * Get the chassis speeds based on controller input of 1 joystick and one angle.
-     *
-     * @param xInput X joystick input for the robot to move in the X direction.
-     * @param yInput Y joystick input for the robot to move in the Y direction.
-     * @param angle  The angle in as a {@link Rotation2d}.
-     * @return {@link ChassisSpeeds} which can be sent to th Swerve Drive.
-     */
-    public ChassisSpeeds getTargetSpeeds(double xInput, double yInput, Rotation2d angle) {
-        xInput = Math.pow(xInput, 3);
-        yInput = Math.pow(yInput, 3);
-        return swerveDrive.swerveController.getTargetSpeeds(xInput,
-                yInput,
-                angle.getRadians(),
-                getHeading().getRadians(),
-                maximumSpeed);
-    }
 
     /**
      * Gets the current field-relative velocity (x, y and omega) of the robot

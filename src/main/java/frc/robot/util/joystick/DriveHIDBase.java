@@ -7,6 +7,7 @@ import frc.robot.util.preset.IPresetContainer;
 import frc.robot.util.preset.PresetMap;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static frc.robot.Constants.Control.DEADBAND;
 
@@ -42,14 +43,16 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
      * @param yInverted     If the <b>Robot Y-Axis</b> is inverted from: (- up, + down)
      * @param twistInverted If the <b>Robot Twist-Axis</b> is inverted from: (- left, + right)
      * @param deadband      The minimum value the HID will recognize.
-     * @param mode          The {@link IDriveMode} to use.
+     * @param primaryMode   The {@link IDriveMode}s to use by default.
+     * @param extraModes    Optional additional {@link IDriveMode}s to recognize and switch to.
      */
     public DriveHIDBase(int port,
                         boolean xInverted,
                         boolean yInverted,
                         boolean twistInverted,
                         double deadband,
-                        IDriveMode mode) {
+                        IDriveMode primaryMode,
+                        IDriveMode... extraModes) {
         super(port);
         this.port = port;
         this.xInverted = xInverted;
@@ -58,7 +61,11 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
         this.deadband = deadband;
         this.index = 0;
         this.modes = new ArrayList<>();
-        modes.add(mode);
+        modes.add(primaryMode);
+        for (IDriveMode mode : extraModes) {
+            if (!modes.contains(mode))
+                modes.add(mode);
+        }
     }
 
     /**
@@ -66,10 +73,11 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
      * {@link Constants.Control#DEADBAND}.
      *
      * @param port          The USB port ID the HID is connected to.
-     * @param mode          The {@link IDriveMode} to use.
+     * @param primaryMode   The {@link IDriveMode}s to use by default.
+     * @param extraModes    Optional additional {@link IDriveMode}s to recognize and switch to.
      */
-    public DriveHIDBase(int port, IDriveMode mode) {
-        this(port, false, false, false, DEADBAND, mode);
+    public DriveHIDBase(int port, IDriveMode primaryMode, IDriveMode... extraModes) {
+        this(port, false, false, false, DEADBAND, primaryMode, extraModes);
     }
 
     /**
@@ -84,6 +92,9 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
         modes.add(mode);
         return this;
     }
+
+    /** @return The currently selected {@link IDriveMode}. */
+    public IDriveMode getDriveMode() { return modes.get(index); }
 
     /** @return The assigned port of the {@link DriveHIDBase} */
     public int getPort() { return this.port; }
@@ -130,10 +141,12 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
      * @return True if the operation was successful; false otherwise.
      */
     @Override
-    public boolean nextPreset() {
+    public boolean nextPreset(boolean loop) {
         if (index + 1 <= modes.size() - 1) {
             return setPreset(index+1);
         }
+        if (loop)
+            return setPreset(0);
         return false;
     }
 
@@ -143,10 +156,12 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
      * @return True if the operation was successful; false otherwise.
      */
     @Override
-    public boolean backPreset() {
+    public boolean backPreset(boolean loop) {
         if (index - 1 >= 0) {
             return setPreset(index-1);
         }
+        if (loop)
+            return setPreset(getMaxIndex());
         return false;
     }
 
@@ -155,13 +170,13 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
      */
     @Override public boolean isFinished() { return true; }
 
-    /** @return The <b>raw</b> Robot X value without inversion. */
+    /** @return The <b>raw</b> Robot X value (+ forward, - back) without inversion. */
     protected abstract double getRawRobotX();
 
-    /** @return The <b>raw</b> Robot Y value without inversion. */
+    /** @return The <b>raw</b> Robot Y value (+ left, - right) without inversion. */
     protected abstract double getRawRobotY();
 
-    /** @return The <b>raw</b> Robot Twist value without inversion. */
+    /** @return The <b>raw</b> Robot Twist value (+ left, - right) without inversion. */
     protected abstract double getRawRobotTwist();
 
     /**
@@ -189,16 +204,19 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
 
     /** @return The X-axis (-1.0 to +1.0) using the robot-coordinate system. (+X forward, +Y left) */
     public double getRobotX() {
-        return ExtendedMath.deadband(xInverted ? -getRawRobotX() : getRawRobotX(), deadband);
+        double val = xInverted ? -getRawRobotX() : getRawRobotX();
+        return ExtendedMath.deadband(modes.get(index).getX(val), deadband);
     }
 
     /** @return The Y-axis (-1.0 to +1.0) using the robot-coordinate system. (+X forward, +Y left) */
     public double getRobotY() {
-        return ExtendedMath.deadband(yInverted ? -getRawRobotY() : getRawRobotY(), deadband);
+        double val = yInverted ? -getRawRobotY() : getRawRobotY();
+        return ExtendedMath.deadband(modes.get(index).getY(val), deadband);
     }
 
     /** @return The Twist-axis (-1.0 to +1.0) using the robot-coordinate system. (+X forward, +Y left) */
     public double getRobotTwist() {
-        return ExtendedMath.deadband(twistInverted ? -getRawRobotTwist() : getRawRobotTwist(), deadband);
+        double val = twistInverted ? -getRawRobotTwist() : getRawRobotTwist();
+        return ExtendedMath.deadband(modes.get(index).getTwist(val), deadband);
     }
 }

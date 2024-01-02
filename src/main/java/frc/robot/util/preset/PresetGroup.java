@@ -5,6 +5,7 @@ import frc.robot.util.io.Looper;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -27,6 +28,7 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
      * Constructs a new {@link PresetGroup} with the specified Type and Name.
      *
      * @param name The name of the {@link PresetGroup}.
+     * @param mode The mode of Operation.
      */
     public PresetGroup(String name, PresetMode mode) {
         this.name = name;
@@ -67,6 +69,18 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
             return;
         }
         this.seqLooper = null;
+    }
+
+    /**
+     * Constructs a new {@link PresetGroup} with the specified Type and Name.
+     *
+     * @param name     The name of the {@link PresetGroup}.
+     * @param mode     The mode of Operation.
+     * @param elements The elements to add.
+     */
+    public PresetGroup(String name, PresetMode mode, IPresetContainer... elements) {
+        this(name, mode);
+        addAll(List.of(elements));
     }
 
     /** @return The name of the {@link PresetGroup} */
@@ -117,16 +131,35 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
     }
 
     /**
+     * Attempts to set the Preset to the specific Name.
+     *
+     * @param name The Name to change the Preset to.
+     * @return True if the operation was successful; false otherwise.
+     */
+    public boolean setPreset(String name) {
+        int idx = 0;
+        for (IPresetContainer preset : this) {
+            if (preset.getName().equalsIgnoreCase(name)) {
+                return setPreset(idx);
+            }
+            idx++;
+        }
+        return false;
+    }
+
+    /**
      * Advances the Preset Container to the next option.
      *
      * @return True if the operation was successful; false otherwise.
      */
     @Override
-    public boolean nextPreset() {
-        if (index + 1 > getMaxIndex())
-            return false;
-        index++;
-        return setPreset(index);
+    public boolean nextPreset(boolean loop) {
+        if (index + 1 <= size() - 1) {
+            return setPreset(index+1);
+        }
+        if (loop)
+            return setPreset(0);
+        return false;
     }
 
     /**
@@ -135,11 +168,20 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
      * @return True if the operation was successful; false otherwise.
      */
     @Override
-    public boolean backPreset() {
-        if (index - 1 < 0)
-            return false;
-        index--;
-        return setPreset(index);
+    public boolean backPreset(boolean loop) {
+        if (index - 1 >= 0) {
+            return setPreset(index-1);
+        }
+        if (loop)
+            return setPreset(getMaxIndex());
+        return false;
+    }
+
+    @Override
+    public void fireListeners() {
+        for (IPresetContainer c : this) {
+            c.fireListeners();
+        }
     }
 
     /**

@@ -1,12 +1,22 @@
 package frc.robot;
 
+import com.revrobotics.CANSparkMaxLowLevel;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.util.io.IOManager;
+import frc.robot.util.joystick.DriveMode;
+import frc.robot.util.joystick.IDriveMode;
+import frc.robot.util.preset.PresetGroup;
+import frc.robot.util.preset.PresetMap;
+import frc.robot.util.preset.PresetMode;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.function.Supplier;
+
+import static java.util.Map.entry;
+import static java.util.Map.ofEntries;
 
 /**
  * This {@link Constants} class is an easy-to-use place for fixed value storage (ex. motor/controller IDs,
@@ -26,8 +36,15 @@ public class Constants {
         /** The Xbox Controller ID (typically 2) */
         public static final int XBOX_CONTROLLER_ID = 2;
 
+
         /** The default deadband value to use on Controllers. */
         public static final double DEADBAND = 0.05;
+
+        /** The default Drive Modes to use on the Primary Joysticks (left/right). */
+        public static final IDriveMode[] DRIVE_MODES = new IDriveMode[]{
+                DriveMode.SMOOTH_MAP,
+                DriveMode.LINEAR_MAP
+        };
     }
 
     public static class AlertConfig {
@@ -58,11 +75,10 @@ public class Constants {
         public static final TelemetryVerbosity SWERVE_TELEMETRY = TelemetryVerbosity.HIGH;
     }
 
-    /*
     public static class VacuumValues {
         public static final int[] VACUUM_MOTOR_IDS = new int[]{20, 16, 13, 11};
         public static final double VACUUM_PUMP_SPEED = 0.45;
-        public static final MotorType VACUUM_MOTOR_TYPE = MotorType.kBrushed;
+        public static final CANSparkMaxLowLevel.MotorType VACUUM_MOTOR_TYPE = CANSparkMaxLowLevel.MotorType.kBrushed;
 
         public static final int[][] VACUUM_SOLENOIDS = new int[][]{
                 new int[]{1, 7}, // PDH 0
@@ -94,7 +110,7 @@ public class Constants {
         public static final String MANUAL_STATION_NAME = "MANUAL_STATION_INDEX";
         public static final String GRAB_FLOOR_CUBE_NAME = "GRAB_FLOOR_CUBE_INDEX";
 
-        public static final PresetMap<Double> ROTATION_PRESETS = new PresetMap<>(
+        public static final PresetMap<Double> ROTATION_PRESETS = new PresetMap<>("Arm Rotation",
                 ofEntries(
                         entry(ZERO_POSITION_NAME, 0.0),
                         entry(HUMAN_STATION_NAME, -45.0),
@@ -107,7 +123,7 @@ public class Constants {
                 )
         );
 
-        public static final PresetMap<Double> EXTENSION_PRESETS = new PresetMap<>(
+        public static final PresetMap<Double> EXTENSION_PRESETS = new PresetMap<>("Arm Extension",
                 ofEntries(
                         entry(ZERO_POSITION_NAME, 0.0),
                         entry(HUMAN_STATION_NAME, 17.365),
@@ -120,7 +136,7 @@ public class Constants {
                 )
         );
 
-        public static final PresetMap WRIST_PRESETS = new PresetMap(
+        public static final PresetMap<Double> WRIST_PRESETS = new PresetMap<>("Wrist Rotation",
                 ofEntries(
                         entry(ZERO_POSITION_NAME, 0.0),
                         entry(HUMAN_STATION_NAME, -38.0),
@@ -133,22 +149,12 @@ public class Constants {
                 )
         );
 
-        public static final PresetMapGroup CLIMBER_PRESET_GROUP = new PresetMapGroup()
-                .addPreset(ROTATION_NAME, ROTATION_PRESETS)
-                .addPreset(EXTENSION_NAME, EXTENSION_PRESETS)
-                .addPreset(WRIST_NAME, WRIST_PRESETS);
+        public static final PresetGroup CLIMBER_PRESET_GROUP = new PresetGroup(
+                "Climber Presets",
+                PresetMode.PARALLEL,
+                ROTATION_PRESETS,
+                EXTENSION_PRESETS,
+                WRIST_PRESETS
+        );
     }
-
-    public static class AutoValues {
-        // fancy calculus type stuff, not sure what to do with it but play with the numbers ;)
-        public static final PIDController X_CONTROLLER = new PIDController(0.1, 0, 0);
-        public static final PIDController Y_CONTROLLER = new PIDController(0.1, 0, 0);
-        public static final ProfiledPIDController HEADING_CONTROLLER = new ProfiledPIDController(0.01, 0, 0,
-                new TrapezoidProfile.Constraints(0.5, 0.5));
-
-        public static final TunablePIDController PITCH_CONTROLLER = new TunablePIDController("Charge Pitch",
-                0.0081, 0.0, 0.0);
-    }
-
-     */
 }

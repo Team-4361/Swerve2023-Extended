@@ -35,7 +35,7 @@ public class PresetTest {
 
         Assertions.assertEquals(0, map.getIndex());
         Assertions.assertEquals(map.size()-1, map.getMaxIndex());
-        Assertions.assertTrue(map.nextPreset());
+        Assertions.assertTrue(map.nextPreset(false));
 
         // Make sure the listeners responded.
         Assertions.assertEquals(1, map.getIndex());
@@ -57,7 +57,7 @@ public class PresetTest {
             group.add(map);
         }
 
-        Assertions.assertTrue(group.nextPreset());
+        Assertions.assertTrue(group.nextPreset(false));
         long startMs = System.currentTimeMillis();
         while (true) {
             if (group.isFinished()) {
@@ -97,7 +97,7 @@ public class PresetTest {
             mainGroup.add(subGroup);
         }
 
-        Assertions.assertTrue(mainGroup.nextPreset());
+        Assertions.assertTrue(mainGroup.nextPreset(false));
         Assertions.assertEquals(SUB_GROUPS * MAP_COUNT, hits.get());
     }
 }

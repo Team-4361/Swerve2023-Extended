@@ -30,15 +30,19 @@ public interface IPresetContainer {
 
     /**
      * Advances the Preset Container to the next option.
+     * @param loop If the Preset Container should loop to the first element if necessary.
      * @return True if the operation was successful; false otherwise.
      */
-    boolean nextPreset();
+    boolean nextPreset(boolean loop);
 
     /**
      * Declines the Preset Container to the previous option.
+     * @param loop If the Preset Container should loop to the last element if necessary.
      * @return True if the operation was successful; false otherwise.
      */
-    boolean backPreset();
+    boolean backPreset(boolean loop);
+
+    void fireListeners();
 
     /**
      * @return If the {@link IPresetContainer} has finished moving position; used for sequential effects.

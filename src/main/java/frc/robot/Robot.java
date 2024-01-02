@@ -6,17 +6,26 @@
 package frc.robot;
 
 import com.revrobotics.CANSparkMaxLowLevel;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.subsystems.SwerveSubsystem;
 import frc.robot.util.io.*;
+import frc.robot.util.joystick.DriveHIDBase;
 import frc.robot.util.joystick.DriveJoystick;
+import frc.robot.util.joystick.DriveMode;
 import frc.robot.util.joystick.DriveXboxController;
 import frc.robot.util.motor.FRCSparkMax;
+import frc.robot.util.preset.PresetGroup;
+import frc.robot.util.preset.PresetMode;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
@@ -24,11 +33,13 @@ import swervelib.motors.SparkMaxSwerve;
 import swervelib.parser.SwerveDriveConfiguration;
 import swervelib.parser.SwerveModulePhysicalCharacteristics;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 import static com.revrobotics.CANSparkMaxLowLevel.MotorType.kBrushless;
+import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.Constants.Control.*;
 
 
@@ -45,6 +56,8 @@ public class Robot extends LoggedRobot {
     public static DriveXboxController xbox;
     public static DriveJoystick leftStick;
     public static DriveJoystick rightStick;
+    public static SwerveSubsystem swerve;
+    public static PresetGroup drivePresets;
 
     /**
      * This method is run when the robot is first started up and should be used for any
@@ -80,10 +93,51 @@ public class Robot extends LoggedRobot {
         Logger.getInstance().start(); // start logging!
         // endregion
 
-        leftStick = new DriveJoystick(LEFT_STICK_ID);
-        rightStick = new DriveJoystick(RIGHT_STICK_ID);
-        xbox = new DriveXboxController(XBOX_CONTROLLER_ID);
+        boolean useNormalSticks = !RobotBase.isSimulation() ||
+                (DriverStation.isJoystickConnected(0) && DriverStation.isJoystickConnected(1));
+
+        // Use a PresetGroup to keep the presets synchronized. We don't want one joystick sensitive
+        // and the other one non-sensitive.
+        drivePresets = new PresetGroup("Drive Presets", PresetMode.PARALLEL);
+
+        if (useNormalSticks) {
+            leftStick = new DriveJoystick(
+                    LEFT_STICK_ID,  // Left stick ID
+                    true,           // Drive X inverted?
+                    true,           // Drive Y inverted?
+                    true,           // Twist Axis Inverted?
+                    DEADBAND,       // Deadband
+                    DRIVE_MODES[0], // Primary Drive Mode
+                    DRIVE_MODES     // Secondary Drive Modes
+            );
+
+            rightStick = new DriveJoystick(
+                    RIGHT_STICK_ID,  // Left stick ID
+                    true,            // Drive X inverted?
+                    true,            // Drive Y inverted?
+                    true,            // Twist Axis Inverted?
+                    DEADBAND,        // Deadband
+                    DRIVE_MODES[0],  // Primary Drive Mode
+                    DRIVE_MODES      // Secondary Drive Modes
+            );
+
+            drivePresets.add(leftStick);
+            drivePresets.add(rightStick);
+        }
+
+        xbox = new DriveXboxController(XBOX_CONTROLLER_ID,
+                true,
+                true,
+                true,
+                DEADBAND,
+                DriveMode.LINEAR_MAP
+        );
+
+        if (!useNormalSticks)
+            drivePresets.add(xbox); // only add the Xbox Controller if used for driving.
+
         pdh = new PowerDistribution();
+        swerve = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(), "swerve"));
 
         BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
         CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
@@ -92,7 +146,7 @@ public class Robot extends LoggedRobot {
 
         // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
         registerAlerts();
-        configureBindings();
+        configureBindings(!useNormalSticks);
         // ******************************************************************* //
     }
 
@@ -117,14 +171,20 @@ public class Robot extends LoggedRobot {
      * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
      * joysticks}.
      */
-    private void configureBindings() {
-        //Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));
-        /*
-
-        xyStick.button(8).onTrue(Robot.swerveDrive.toggleFieldOrientedCommand());
-        xyStick.button(12).onTrue(Robot.swerveDrive.resetGyroCommand());
-
-        ///////////////////////////////// XBOX CONTROLS
+    private void configureBindings(boolean xboxOnly) {
+        if (xboxOnly) {
+            IOManager.debug(this, "Xbox-only/Simulation mode detected.");
+            Robot.swerve.setDefaultCommand(Robot.swerve.runEnd(
+                    () -> Robot.swerve.drive(xbox, true, false),
+                    () -> Robot.swerve.lock())
+            );
+        } else {
+            IOManager.debug(this, "Regular mode detected.");
+            Robot.swerve.setDefaultCommand(Robot.swerve.runEnd(
+                    () -> Robot.swerve.drive(leftStick, rightStick, true, false),
+                    () -> Robot.swerve.lock())
+            );
+        }
 
         xbox.a().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(ZERO_POSITION_NAME)));
         xbox.b().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(FLOOR_CUBE_NAME)));
@@ -133,9 +193,31 @@ public class Robot extends LoggedRobot {
 
         xbox.povDown().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(FLOOR_CONE_NAME)));
         xbox.povLeft().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(MANUAL_STATION_NAME)));
+        xbox.rightBumper().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(HIGH_CONE_NAME)));
+
+        if (!xboxOnly) {
+            leftStick.button(10).onTrue(Commands.runOnce(() -> drivePresets.nextPreset(true)));
+            leftStick.button(12).onTrue(Commands.runOnce(() -> swerve.teleopFieldOriented = !swerve.teleopFieldOriented));
+            leftStick.button(11).onTrue(Commands.runOnce(() -> swerve.zeroGyro()));
+            leftStick.trigger().whileTrue(Commands.runEnd(
+                    () -> drivePresets.setPreset("Slow Mode"),
+                    () -> drivePresets.setPreset(0)
+            ));
+            leftStick.button(2).whileTrue(Commands.run(() -> swerve.lock()));
+        }
+
+        //Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));
+        /*
+
+        xyStick.button(8).onTrue(Robot.swerveDrive.toggleFieldOrientedCommand());
+        xyStick.button(12).onTrue(Robot.swerveDrive.resetGyroCommand());
+
+        ///////////////////////////////// XBOX CONTROLS
+
+
         xbox.povUp().onTrue(Robot.pump.openVacuumCommand());
 
-        xbox.rightBumper().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(HIGH_CONE_NAME)));
+
 
         xbox.rightTrigger().whileTrue(Commands.runEnd(
                 () -> Robot.wrist.translateMotor(-xbox.getRightTriggerAxis()/2),
@@ -193,7 +275,11 @@ public class Robot extends LoggedRobot {
 
     @Override public void disabledInit() { CommandScheduler.getInstance().cancelAll(); }
     @Override public void testInit() { CommandScheduler.getInstance().cancelAll(); }
-    @Override public void teleopInit() { CommandScheduler.getInstance().cancelAll(); }
+    @Override public void teleopInit() {
+        CommandScheduler.getInstance().cancelAll();
+        // Make sure we know where to go.
+        CLIMBER_PRESET_GROUP.fireListeners();
+    }
 
     /**
      * This method is called periodically during operator control.

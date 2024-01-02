@@ -6,6 +6,11 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static frc.robot.Constants.Control.DEADBAND;
+
 public class DriveXboxController extends DriveHIDBase {
     private final XboxController hid;
 
@@ -17,28 +22,30 @@ public class DriveXboxController extends DriveHIDBase {
      * @param yInverted     If the <b>Robot Y-Axis</b> is inverted from: (- up, + down)
      * @param twistInverted If the <b>Robot Twist-Axis</b> is inverted from: (- left, + right)
      * @param deadband      The minimum value the HID will recognize.
-     * @param mode          The {@link IDriveMode} to use.
+     * @param primaryMode   The {@link IDriveMode}s to use by default.
+     * @param extraModes    Optional additional {@link IDriveMode}s to recognize and switch to.
      */
     public DriveXboxController(int port,
-                               boolean xInverted,
-                               boolean yInverted,
-                               boolean twistInverted,
-                               double deadband,
-                               IDriveMode mode) {
-        super(port, xInverted, yInverted, twistInverted, deadband, mode);
+                        boolean xInverted,
+                        boolean yInverted,
+                        boolean twistInverted,
+                        double deadband,
+                        IDriveMode primaryMode,
+                        IDriveMode... extraModes) {
+        super(port, xInverted, yInverted, twistInverted, deadband, primaryMode, extraModes);
         this.hid = new XboxController(port);
     }
 
     /**
      * Constructs a {@link DriveXboxController} with all Inversion set to <b>false</b> and deadband set to
-     * {@link Constants.Control#DEADBAND}
+     * {@link Constants.Control#DEADBAND}.
      *
-     * @param port The USB port ID the HID is connected to.
-     * @param mode The {@link IDriveMode} to use.
+     * @param port          The USB port ID the HID is connected to.
+     * @param primaryMode   The {@link IDriveMode}s to use by default.
+     * @param extraModes    Optional additional {@link IDriveMode}s to recognize and switch to.
      */
-    public DriveXboxController(int port, IDriveMode mode) {
-        super(port, mode);
-        this.hid = new XboxController(port);
+    public DriveXboxController(int port, IDriveMode primaryMode, IDriveMode... extraModes) {
+        this(port, false, false, false, DEADBAND, primaryMode, extraModes);
     }
 
     @Override public XboxController getHID() { return hid; }
@@ -290,28 +297,28 @@ public class DriveXboxController extends DriveHIDBase {
      *
      * @return The axis value.
      */
-    public double getLeftX() { return hid.getLeftX(); }
+    public double getLeftX() { return getDriveMode().getY(hid.getLeftX()); }
 
     /**
      * Get the X axis value of right side of the controller.
      *
      * @return The axis value.
      */
-    public double getRightX() { return hid.getRightX(); }
+    public double getRightX() { return getDriveMode().getY(hid.getRightX()); }
 
     /**
      * Get the Y axis value of left side of the controller.
      *
      * @return The axis value.
      */
-    public double getLeftY() { return hid.getLeftY(); }
+    public double getLeftY() { return getDriveMode().getX(hid.getLeftY()); }
 
     /**
      * Get the Y axis value of right side of the controller.
      *
      * @return The axis value.
      */
-    public double getRightY() { return hid.getRightY(); }
+    public double getRightY() { return getDriveMode().getX(hid.getRightY()); }
 
     /**
      * Get the left trigger (LT) axis value of the controller. Note that this axis is bound to the range of [0, 1] as
@@ -330,10 +337,10 @@ public class DriveXboxController extends DriveHIDBase {
     public double getRightTriggerAxis() { return hid.getRightTriggerAxis(); }
 
     /** @return The <b>raw</b> Robot X value without inversion. */
-    @Override protected double getRawRobotX() { return getLeftX(); }
+    @Override protected double getRawRobotX() { return getLeftY(); }
 
     /** @return The <b>raw</b> Robot Y value without inversion. */
-    @Override protected double getRawRobotY() { return getLeftY(); }
+    @Override protected double getRawRobotY() { return getLeftX(); }
 
     /** @return The <b>raw</b> Robot Twist value without inversion. */
     @Override protected double getRawRobotTwist() { return getRightX(); }

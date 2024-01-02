@@ -1,91 +1,214 @@
 package frc.robot.util.joystick;
 
-import edu.wpi.first.wpilibj.PS4Controller;
-import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
-import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
-import frc.robot.util.math.ExtendedMath;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.event.EventLoop;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants;
 
-public class DriveJoystick extends CommandJoystick implements IDriveHID {
-    private final boolean joyXInverted;
-    private final boolean joyYInverted;
-    private final boolean joyTwistInverted;
-    private double deadband;
+import static frc.robot.Constants.Control.DEADBAND;
+
+public class DriveJoystick extends DriveHIDBase {
+    private final Joystick hid;
 
     /**
      * Constructs a {@link DriveJoystick}
-     * @param port The USB port ID the Joystick is connected to.
-     * @param joyXInverted If the <b>Joystick X-Axis</b> is inverted from: (- left, + right)
-     * @param joyYInverted If the <b>Joystick Y-Axis</b> is inverted from: (- up, + down)
-     * @param joyTwistInverted If the <b>Joystick Twist-Axis</b> is inverted from: (- left, + right)
-     * @param deadband The minimum value the Joystick will recognize.
+     *
+     * @param port          The USB port ID the HID is connected to.
+     * @param xInverted     If the <b>Robot X-Axis</b> is inverted from: (- left, + right)
+     * @param yInverted     If the <b>Robot Y-Axis</b> is inverted from: (- up, + down)
+     * @param twistInverted If the <b>Robot Twist-Axis</b> is inverted from: (- left, + right)
+     * @param deadband      The minimum value the HID will recognize.
+     * @param primaryMode   The {@link IDriveMode}s to use by default.
+     * @param extraModes    Optional additional {@link IDriveMode}s to recognize and switch to.
      */
     public DriveJoystick(int port,
-                         boolean joyXInverted,
-                         boolean joyYInverted,
-                         boolean joyTwistInverted,
-                         double deadband) {
-        super(port);
-        this.joyXInverted = joyXInverted;
-        this.joyYInverted = joyYInverted;
-        this.joyTwistInverted = joyTwistInverted;
-        this.deadband = deadband;
+                        boolean xInverted,
+                        boolean yInverted,
+                        boolean twistInverted,
+                        double deadband,
+                        IDriveMode primaryMode,
+                        IDriveMode... extraModes) {
+        super(port, xInverted, yInverted, twistInverted, deadband, primaryMode, extraModes);
+        hid = new Joystick(port);
     }
 
     /**
-     * Constructs a {@link DriveJoystick} with all axes non-inverted.
-     * @param port The USB port ID the Joystick is connected to.
-     * @param deadband The minimum value the Joystick will recognize.
+     * Constructs a {@link DriveJoystick} with all Inversion set to <b>false</b> and deadband set to
+     * {@link Constants.Control#DEADBAND}.
+     *
+     * @param port          The USB port ID the HID is connected to.
+     * @param primaryMode   The {@link IDriveMode}s to use by default.
+     * @param extraModes    Optional additional {@link IDriveMode}s to recognize and switch to.
      */
-    public DriveJoystick(int port, double deadband) {
-        super(port);
-        this.joyXInverted = false;
-        this.joyYInverted = false;
-        this.joyTwistInverted = false;
-        this.deadband = deadband;
+    public DriveJoystick(int port, IDriveMode primaryMode, IDriveMode... extraModes) {
+        this(port, false, false, false, DEADBAND, primaryMode, extraModes);
     }
+
+    /** @return The <b>raw</b> Robot X value (+ forward, - back) without inversion. */
+    @Override protected double getRawRobotX() { return getY(); }
+
+    /** @return The <b>raw</b> Robot Y value (+ left, - right) without inversion. */
+    @Override protected double getRawRobotY() { return getX(); }
+
+    /** @return The <b>raw</b> Robot Twist value (+ left, - right) without inversion. */
+    @Override protected double getRawRobotTwist() { return getTwist(); }
+
+    public Trigger trigger() { return trigger(CommandScheduler.getInstance().getDefaultButtonLoop()); }
 
     /**
-     * Constructs a {@link DriveJoystick} with all axes inverted, and the default deadband.
-     * @param port The USB port ID the Joystick is connected to.
+     * Constructs an event instance around the trigger button's digital signal.
+     *
+     * @param loop the event loop instance to attach the event to.
+     * @return an event instance representing the trigger button's digital signal attached to the
+     *     given loop.
      */
-    public DriveJoystick(int port) {
-        super(port);
-        this.joyXInverted = false;
-        this.joyYInverted = false;
-        this.joyTwistInverted = false;
-        this.deadband = DEFAULT_DEADBAND;
-    }
+    public Trigger trigger(EventLoop loop) { return hid.trigger(loop).castTo(Trigger::new); }
 
-    /** @return The X-axis (-1.0 to +1.0) using the robot-coordinate system. (+X forward, +Y left) */
-    @Override
-    public double getRobotX() {
-        return joyYInverted ? ExtendedMath.deadband(getY(), deadband) : ExtendedMath.deadband(-getY(), deadband);
-    }
+    /**
+     * Constructs an event instance around the top button's digital signal.
+     *
+     * @return an event instance representing the top button's digital signal attached to the {@link
+     *     CommandScheduler#getDefaultButtonLoop() default scheduler button loop}.
+     * @see #top(EventLoop)
+     */
+    public Trigger top() { return top(CommandScheduler.getInstance().getDefaultButtonLoop()); }
 
-    /** @return The Y-axis (-1.0 to +1.0) using the robot-coordinate system. (+X forward, +Y left) */
-    @Override
-    public double getRobotY() {
-        return joyXInverted ? ExtendedMath.deadband(getX(), deadband) : ExtendedMath.deadband(-getX(), deadband);
-    }
+    /**
+     * Constructs an event instance around the top button's digital signal.
+     *
+     * @param loop the event loop instance to attach the event to.
+     * @return an event instance representing the top button's digital signal attached to the given
+     *     loop.
+     */
+    public Trigger top(EventLoop loop) {return hid.top(loop).castTo(Trigger::new);}
 
-    /** @return The Twist-axis (-1.0 to +1.0) using the robot-coordinate system. (+X forward, +Y left) */
-    @Override
-    public double getRobotTwist() {
-        return joyTwistInverted ? ExtendedMath.deadband(getTwist(), deadband) : ExtendedMath.deadband(-getTwist(), deadband);
-    }
+    /**
+     * Set the channel associated with the X axis.
+     *
+     * @param channel The channel to set the axis to.
+     */
+    public void setXChannel(int channel) {hid.setXChannel(channel);}
 
-    @Override public double getDeadband() { return deadband; }
-    @Override public void setDeadband(double deadband) { this.deadband = deadband; }
+    /**
+     * Set the channel associated with the Y axis.
+     *
+     * @param channel The channel to set the axis to.
+     */
+    public void setYChannel(int channel) {hid.setYChannel(channel);}
 
-    @Override public boolean isJoyXInverted() {
-        return joyXInverted;
-    }
+    /**
+     * Set the channel associated with the Z axis.
+     *
+     * @param channel The channel to set the axis to.
+     */
+    public void setZChannel(int channel) {hid.setZChannel(channel);}
 
-    @Override public boolean isJoyYInverted() {
-        return joyYInverted;
-    }
+    /**
+     * Set the channel associated with the throttle axis.
+     *
+     * @param channel The channel to set the axis to.
+     */
+    public void setThrottleChannel(int channel) {hid.setThrottleChannel(channel);}
 
-    @Override public boolean isJoyTwistInverted() {
-        return joyTwistInverted;
-    }
+    /**
+     * Set the channel associated with the twist axis.
+     *
+     * @param channel The channel to set the axis to.
+     */
+    public void setTwistChannel(int channel) {hid.setTwistChannel(channel);}
+
+    /**
+     * Get the channel currently associated with the X axis.
+     *
+     * @return The channel for the axis.
+     */
+    public int getXChannel() {return hid.getXChannel();}
+
+    /**
+     * Get the channel currently associated with the Y axis.
+     *
+     * @return The channel for the axis.
+     */
+    public int getYChannel() {return hid.getYChannel();}
+
+    /**
+     * Get the channel currently associated with the Z axis.
+     *
+     * @return The channel for the axis.
+     */
+    public int getZChannel() {return hid.getZChannel();}
+
+    /**
+     * Get the channel currently associated with the twist axis.
+     *
+     * @return The channel for the axis.
+     */
+    public int getTwistChannel() {return hid.getTwistChannel();}
+
+    /**
+     * Get the channel currently associated with the throttle axis.
+     *
+     * @return The channel for the axis.
+     */
+    public int getThrottleChannel() {return hid.getThrottleChannel();}
+
+    /**
+     * Get the x position of the HID.
+     *
+     * @return the x position
+     */
+    public double getX() {return hid.getX();}
+
+    /**
+     * Get the y position of the HID.
+     *
+     * @return the y position
+     */
+    public double getY() {return hid.getY();}
+
+    /**
+     * Get the z position of the HID.
+     *
+     * @return the z position
+     */
+    public double getZ() {return hid.getZ();}
+
+    /**
+     * Get the twist value of the current joystick. This depends on the mapping of the joystick
+     * connected to the current port.
+     *
+     * @return The Twist value of the joystick.
+     */
+    public double getTwist() {return hid.getTwist();}
+
+    /**
+     * Get the throttle value of the current joystick. This depends on the mapping of the joystick
+     * connected to the current port.
+     *
+     * @return The Throttle value of the joystick.
+     */
+    public double getThrottle() {return hid.getThrottle();}
+
+    /**
+     * Get the magnitude of the direction vector formed by the joystick's current position relative to
+     * its origin.
+     *
+     * @return The magnitude of the direction vector
+     */
+    public double getMagnitude() {return hid.getMagnitude();}
+
+    /**
+     * Get the direction of the vector formed by the joystick and its origin in radians.
+     *
+     * @return The direction of the vector in radians
+     */
+    public double getDirectionRadians() {return hid.getDirectionRadians();}
+
+    /**
+     * Get the direction of the vector formed by the joystick and its origin in degrees.
+     *
+     * @return The direction of the vector in degrees
+     */
+    public double getDirectionDegrees() { return hid.getDirectionDegrees(); }
 }

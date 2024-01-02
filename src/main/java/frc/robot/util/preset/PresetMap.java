@@ -1,7 +1,10 @@
 package frc.robot.util.preset;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -13,27 +16,78 @@ import java.util.function.Supplier;
  * @param <T> The type of values to hold.
  * @since 0.0.1
  * @version 0.0.1
+ * @author Eric Gold
  */
 public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetContainer {
     private final String name;
     private final ArrayList<IPresetListener<T>> listeners;
 
     private Supplier<Boolean> completeSupplier;
+    private boolean dashboardEnabled;
     private long completeDelayMs;
     private long startMs = 0;
     private int index;
 
     /**
      * Constructs a new {@link PresetMap} with the specified Type and Name.
-     *
-     * @param name The name of the {@link PresetMap}.
+     * @param name             The name of the {@link PresetMap}.
+     * @param dashboardEnabled If the {@link PresetMap} should be logged to {@link SmartDashboard}.
      */
-    public PresetMap(String name) {
+    public PresetMap(String name, boolean dashboardEnabled) {
         this.name = name;
         this.index = 0;
         this.listeners = new ArrayList<>();
         this.completeSupplier = null;
         this.completeDelayMs = 0;
+        setDashboardEnabled(dashboardEnabled);
+    }
+
+    /**
+     * Constructs a new {@link PresetMap} with the specified Type and Name.
+     * <b>It will be logged to {@link SmartDashboard}</b>
+     *
+     * @param name The name of the {@link PresetMap}.
+     */
+    public PresetMap(String name) {
+        this(name, true);
+    }
+
+    /**
+     * Constructs a new {@link PresetMap} with the specified Type and Name.
+     * @param name             The name of the {@link PresetMap}.
+     * @param dashboardEnabled If the {@link PresetMap} should be logged to {@link SmartDashboard}.
+     * @param elements         The elements to add.
+     */
+    public PresetMap(String name, boolean dashboardEnabled, Map<String, T> elements) {
+        this(name, dashboardEnabled);
+        this.putAll(elements);
+    }
+
+    /**
+     * Constructs a new {@link PresetMap} with the specified Type and Name.
+     * <b>It will be logged to {@link SmartDashboard}</b>
+     *
+     * @param name     The name of the {@link PresetMap}.
+     * @param elements The elements to add.
+     */
+    public PresetMap(String name, Map<String, T> elements) {
+        this(name, true, elements);
+    }
+
+    /** @return If this {@link PresetMap} will be logged to {@link SmartDashboard}. */
+    public boolean isDashboardEnabled() { return this.dashboardEnabled; }
+
+    /**
+     * Sets if the {@link PresetMap} should be logged to {@link SmartDashboard}.
+     * @param value The {@link Boolean} value to use.
+     * @return      The current {@link PresetMap} with the modification.
+     */
+    public PresetMap<T> setDashboardEnabled(boolean value) {
+        this.dashboardEnabled = value;
+        if (value) {
+            SmartDashboard.putString(getName(), getPresetName());
+        }
+        return this;
     }
 
     /**
@@ -95,12 +149,17 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
         return "";
     }
 
-    private void fireListeners() {
+    @Override
+    public void fireListeners() {
         String name = getPresetName(); // slight optimization; call the loop only once to prevent O(N^2)
         if (name.isEmpty())
             return;
         for (IPresetListener<T> listener : listeners) {
             listener.onPresetAdjust(name, get(name));
+        }
+
+        if (dashboardEnabled) {
+            SmartDashboard.putString(getName(), name);
         }
     }
 
@@ -159,12 +218,12 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
      * @return True if the operation was successful; false otherwise.
      */
     @Override
-    public boolean nextPreset() {
+    public boolean nextPreset(boolean loop) {
         if (index + 1 <= size() - 1) {
-            index++;
-            setPreset(index);
-            return true;
+            return setPreset(index+1);
         }
+        if (loop)
+            return setPreset(0);
         return false;
     }
 
@@ -174,12 +233,12 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
      * @return True if the operation was successful; false otherwise.
      */
     @Override
-    public boolean backPreset() {
+    public boolean backPreset(boolean loop) {
         if (index - 1 >= 0) {
-            index--;
-            setPreset(index);
-            return true;
+            return setPreset(index-1);
         }
+        if (loop)
+            return setPreset(getMaxIndex());
         return false;
     }
 
