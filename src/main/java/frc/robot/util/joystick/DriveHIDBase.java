@@ -4,10 +4,8 @@ import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
 import frc.robot.Constants;
 import frc.robot.util.math.ExtendedMath;
 import frc.robot.util.preset.IPresetContainer;
-import frc.robot.util.preset.PresetMap;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import static frc.robot.Constants.Control.DEADBAND;
 
@@ -103,7 +101,7 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
     @Override public String getName() { return port + " | Drive Modes"; }
 
     /** @return The currently selected Preset Index. */
-    @Override public int getIndex() { return index; }
+    @Override public int getSelectedIndex() { return index; }
 
     /** @return The maximum Preset Index which can be chosen. */
     @Override public int getMaxIndex() { return modes.size()-1; }

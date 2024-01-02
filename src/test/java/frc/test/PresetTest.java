@@ -33,12 +33,12 @@ public class PresetTest {
             listMapValue.set(value);
         });
 
-        Assertions.assertEquals(0, map.getIndex());
+        Assertions.assertEquals(0, map.getSelectedIndex());
         Assertions.assertEquals(map.size()-1, map.getMaxIndex());
         Assertions.assertTrue(map.nextPreset(false));
 
         // Make sure the listeners responded.
-        Assertions.assertEquals(1, map.getIndex());
+        Assertions.assertEquals(1, map.getSelectedIndex());
         Assertions.assertEquals(2, listMapValue.get());
         Assertions.assertEquals("TWO", listMapName.get());
     }

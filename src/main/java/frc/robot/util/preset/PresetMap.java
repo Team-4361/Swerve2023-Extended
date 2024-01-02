@@ -48,9 +48,7 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
      *
      * @param name The name of the {@link PresetMap}.
      */
-    public PresetMap(String name) {
-        this(name, true);
-    }
+    public PresetMap(String name) { this(name, true); }
 
     /**
      * Constructs a new {@link PresetMap} with the specified Type and Name.
@@ -82,11 +80,10 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
      * @param value The {@link Boolean} value to use.
      * @return      The current {@link PresetMap} with the modification.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public PresetMap<T> setDashboardEnabled(boolean value) {
         this.dashboardEnabled = value;
-        if (value) {
-            SmartDashboard.putString(getName(), getPresetName());
-        }
+        if (value) SmartDashboard.putString(getName(), getSelectedName());
         return this;
     }
 
@@ -122,13 +119,16 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
     public long getFinishedDelay() { return this.completeDelayMs; }
 
     /**
-     * Adds a {@link IPresetListener} to the {@link PresetMap}.
+     * Adds a {@link IPresetListener} to the {@link PresetMap}, and calls the
+     * {@link IPresetListener#onPresetAdjust(String, Object)} method.
+     *
      * @param listener The {@link IPresetListener} to add.
      * @return The current {@link PresetMap} with the modification.
      */
     @SuppressWarnings("UnusedReturnValue")
     public PresetMap<T> addListener(IPresetListener<T> listener) {
         this.listeners.add(listener);
+        listener.onPresetAdjust(getSelectedName(), getSelectedValue());
         return this;
     }
 
@@ -136,7 +136,7 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
      * @param idx The index to check for.
      * @return The assigned {@link String} name for the Preset or empty {@link String} if invalid.
      */
-    public String getPresetName(int idx) {
+    public String getSelectedName(int idx) {
         int i = 0;
         if (idx < size()) {
             for (String tName : keySet()) {
@@ -149,25 +149,14 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
         return "";
     }
 
-    @Override
-    public void fireListeners() {
-        String name = getPresetName(); // slight optimization; call the loop only once to prevent O(N^2)
-        if (name.isEmpty())
-            return;
-        for (IPresetListener<T> listener : listeners) {
-            listener.onPresetAdjust(name, get(name));
-        }
-
-        if (dashboardEnabled) {
-            SmartDashboard.putString(getName(), name);
-        }
-    }
-
     /** @return The name of the {@link IPresetContainer} */
     @Override public String getName() { return name; }
 
-    /** The currently selected Preset Index. */
-    @Override public int getIndex() { return index; }
+    /** @return The currently selected Preset Index. */
+    @Override public int getSelectedIndex() { return index; }
+
+    /** @return The currently selected value. */
+    public T getSelectedValue() { return get(getSelectedName()); }
 
     /** The maximum Preset Index which can be chosen. */
     @Override public int getMaxIndex() { return size()-1; }
@@ -184,7 +173,9 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
             return false;
         this.index = idx;
         this.startMs = System.currentTimeMillis();
-        fireListeners();
+        listeners.forEach(o -> o.onPresetAdjust(getSelectedName(), get(getSelectedName())));
+        if (dashboardEnabled)
+            SmartDashboard.putString(getName(), name);
         return true;
     }
 
@@ -197,48 +188,35 @@ public class PresetMap<T> extends LinkedHashMap<String, T> implements IPresetCon
     public boolean setPreset(String name) {
         int idx = 0;
         for (String tName : keySet()) {
-            if (name.equalsIgnoreCase(tName)) {
-                index = idx;
-                fireListeners();
-                return true;
-            }
+            if (name.equalsIgnoreCase(tName))
+                return setPreset(idx);
             idx++;
         }
         return false;
     }
 
     /** @return The name of the currently selected Preset */
-    public String getPresetName() {
-        return getPresetName(index);
-    }
+    public String getSelectedName() { return getSelectedName(index); }
 
     /**
      * Advances the Preset Container to the next option.
-     *
      * @return True if the operation was successful; false otherwise.
      */
     @Override
     public boolean nextPreset(boolean loop) {
-        if (index + 1 <= size() - 1) {
-            return setPreset(index+1);
-        }
-        if (loop)
-            return setPreset(0);
+        if (index + 1 <= size() - 1) return setPreset(index+1);
+        if (loop) return setPreset(0);
         return false;
     }
 
     /**
      * Declines the Preset Container to the previous option.
-     *
      * @return True if the operation was successful; false otherwise.
      */
     @Override
     public boolean backPreset(boolean loop) {
-        if (index - 1 >= 0) {
-            return setPreset(index-1);
-        }
-        if (loop)
-            return setPreset(getMaxIndex());
+        if (index - 1 >= 0) return setPreset(index-1);
+        if (loop) return setPreset(getMaxIndex());
         return false;
     }
 

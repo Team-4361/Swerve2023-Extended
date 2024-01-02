@@ -49,7 +49,7 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
                     seqLooper.stop(); // End the Looper if an Exception will be thrown.
                 }
                 IPresetContainer inst = get(seqIndex);
-                if (inst.getIndex() != index) {
+                if (inst.getSelectedIndex() != index) {
                     // Set the preset if not currently set; then wait until finished.
                     inst.setPreset(index);
                 }
@@ -87,7 +87,7 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
     @Override public String getName() { return name; }
 
     /** The currently selected Preset Index. */
-    @Override public int getIndex() { return index; }
+    @Override public int getSelectedIndex() { return index; }
 
     /** The maximum Preset Index which can be chosen. */
     @Override public int getMaxIndex() {
@@ -175,13 +175,6 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
         if (loop)
             return setPreset(getMaxIndex());
         return false;
-    }
-
-    @Override
-    public void fireListeners() {
-        for (IPresetContainer c : this) {
-            c.fireListeners();
-        }
     }
 
     /**

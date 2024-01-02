@@ -3,6 +3,8 @@ package frc.robot.util.preset;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * This interface enables {@link PresetMap} consistency and allows chaining of
  * multiple synchronized {@link PresetGroup}s -- similar logic to {@link SequentialCommandGroup} implementing
@@ -15,10 +17,10 @@ public interface IPresetContainer {
     /** @return The name of the {@link IPresetContainer} */
     String getName();
 
-    /** The currently selected Preset Index. */
-    int getIndex();
+    /** @return The currently selected Preset Index. */
+    int getSelectedIndex();
 
-    /** The maximum Preset Index which can be chosen. */
+    /** @return The maximum Preset Index which can be chosen. */
     int getMaxIndex();
 
     /**
@@ -41,8 +43,6 @@ public interface IPresetContainer {
      * @return True if the operation was successful; false otherwise.
      */
     boolean backPreset(boolean loop);
-
-    void fireListeners();
 
     /**
      * @return If the {@link IPresetContainer} has finished moving position; used for sequential effects.
