@@ -137,12 +137,9 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
      * @return True if the operation was successful; false otherwise.
      */
     public boolean setPreset(String name) {
-        int idx = 0;
-        for (IPresetContainer preset : this) {
-            if (preset.getName().equalsIgnoreCase(name)) {
-                return setPreset(idx);
-            }
-            idx++;
+        for (int i=0; i<size(); i++) {
+            if (get(i).getName().equalsIgnoreCase(name))
+                return setPreset(i);
         }
         return false;
     }

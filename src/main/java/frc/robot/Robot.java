@@ -32,6 +32,7 @@ import org.littletonrobotics.junction.networktables.NT4Publisher;
 import swervelib.motors.SparkMaxSwerve;
 import swervelib.parser.SwerveDriveConfiguration;
 import swervelib.parser.SwerveModulePhysicalCharacteristics;
+import swervelib.telemetry.SwerveDriveTelemetry;
 
 import java.io.File;
 import java.util.HashMap;
@@ -41,6 +42,8 @@ import java.util.function.BiConsumer;
 import static com.revrobotics.CANSparkMaxLowLevel.MotorType.kBrushless;
 import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.Constants.Control.*;
+import static frc.robot.util.io.VerbosityLevel.DEBUG;
+import static frc.robot.util.io.VerbosityLevel.NORMAL;
 
 
 /**
@@ -50,7 +53,7 @@ import static frc.robot.Constants.Control.*;
  * project.
  */
 public class Robot extends LoggedRobot {
-    public static VerbosityLevel verbosity = VerbosityLevel.DEBUG;
+    public static VerbosityLevel verbosity = RobotBase.isSimulation() ? DEBUG : NORMAL;
 
     public static PowerDistribution pdh;
     public static DriveXboxController xbox;
@@ -93,8 +96,8 @@ public class Robot extends LoggedRobot {
         Logger.getInstance().start(); // start logging!
         // endregion
 
-        boolean useNormalSticks = !RobotBase.isSimulation() ||
-                (DriverStation.isJoystickConnected(0) && DriverStation.isJoystickConnected(1));
+        boolean useNormalSticks = true;//!RobotBase.isSimulation(); ||
+                //(DriverStation.isJoystickConnected(0) && DriverStation.isJoystickConnected(1));
 
         // Use a PresetGroup to keep the presets synchronized. We don't want one joystick sensitive
         // and the other one non-sensitive.
@@ -138,6 +141,8 @@ public class Robot extends LoggedRobot {
 
         pdh = new PowerDistribution();
         swerve = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(), "swerve"));
+
+        SwerveDriveTelemetry.verbosity = SwerveDriveTelemetry.TelemetryVerbosity.LOW;
 
         BiConsumer<Command, Boolean> logCommandFunction = getCommandActivity();
         CommandScheduler.getInstance().onCommandInitialize(c -> logCommandFunction.accept(c, true));
@@ -200,7 +205,7 @@ public class Robot extends LoggedRobot {
             leftStick.button(12).onTrue(Commands.runOnce(() -> swerve.teleopFieldOriented = !swerve.teleopFieldOriented));
             leftStick.button(11).onTrue(Commands.runOnce(() -> swerve.zeroGyro()));
             leftStick.trigger().whileTrue(Commands.runEnd(
-                    () -> drivePresets.setPreset("Slow Mode"),
+                    () -> drivePresets.setPreset(2),
                     () -> drivePresets.setPreset(0)
             ));
             leftStick.button(2).whileTrue(Commands.run(() -> swerve.lock()));
@@ -277,8 +282,6 @@ public class Robot extends LoggedRobot {
     @Override public void testInit() { CommandScheduler.getInstance().cancelAll(); }
     @Override public void teleopInit() {
         CommandScheduler.getInstance().cancelAll();
-        // Make sure we know where to go.
-        CLIMBER_PRESET_GROUP.fireListeners();
     }
 
     /**

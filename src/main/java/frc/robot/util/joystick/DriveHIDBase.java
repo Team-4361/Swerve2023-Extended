@@ -1,11 +1,15 @@
 package frc.robot.util.joystick;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
 import frc.robot.Constants;
+import frc.robot.Robot;
+import frc.robot.util.io.VerbosityLevel;
 import frc.robot.util.math.ExtendedMath;
 import frc.robot.util.preset.IPresetContainer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import static frc.robot.Constants.Control.DEADBAND;
 
@@ -60,10 +64,8 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
         this.index = 0;
         this.modes = new ArrayList<>();
         modes.add(primaryMode);
-        for (IDriveMode mode : extraModes) {
-            if (!modes.contains(mode))
-                modes.add(mode);
-        }
+        Collections.addAll(modes, extraModes);
+        SmartDashboard.putString(getName(), getPresetName());
     }
 
     /**
@@ -130,6 +132,7 @@ public abstract class DriveHIDBase extends CommandGenericHID implements IPresetC
         if (idx < 0 || idx > getMaxIndex())
             return false;
         index = idx;
+        SmartDashboard.putString(getName(), getPresetName());
         return true;
     }
 

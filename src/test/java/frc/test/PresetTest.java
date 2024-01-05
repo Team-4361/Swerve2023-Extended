@@ -77,7 +77,6 @@ public class PresetTest {
     public void PresetGroup_TestParallel() {
         // Start by creating 50 PresetGroups and verify their calls.
         PresetGroup mainGroup = new PresetGroup("MainGroup", PARALLEL);
-
         AtomicInteger hits = new AtomicInteger(0);
 
         final int SUB_GROUPS = 10;
@@ -98,6 +97,6 @@ public class PresetTest {
         }
 
         Assertions.assertTrue(mainGroup.nextPreset(false));
-        Assertions.assertEquals(SUB_GROUPS * MAP_COUNT, hits.get());
+        Assertions.assertEquals((SUB_GROUPS * MAP_COUNT)*2, hits.get());
     }
 }

@@ -43,7 +43,8 @@ public class Constants {
         /** The default Drive Modes to use on the Primary Joysticks (left/right). */
         public static final IDriveMode[] DRIVE_MODES = new IDriveMode[]{
                 DriveMode.SMOOTH_MAP,
-                DriveMode.LINEAR_MAP
+                DriveMode.LINEAR_MAP,
+                DriveMode.SLOW_MODE
         };
     }
 
