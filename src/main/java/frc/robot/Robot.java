@@ -33,8 +33,9 @@ import java.util.function.BiConsumer;
 
 import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.Constants.Control.*;
-import static frc.robot.util.io.VerbosityLevel.DEBUG;
-import static frc.robot.util.io.VerbosityLevel.NORMAL;
+import static frc.robot.Constants.Features.USE_FLIGHT_STICKS;
+import static frc.robot.util.io.RobotVerbosity.DEBUG;
+import static frc.robot.util.io.RobotVerbosity.NORMAL;
 
 
 /**
@@ -44,8 +45,6 @@ import static frc.robot.util.io.VerbosityLevel.NORMAL;
  * project.
  */
 public class Robot extends LoggedRobot {
-    public static VerbosityLevel verbosity = RobotBase.isSimulation() ? DEBUG : NORMAL;
-
     public static PowerDistribution pdh;
     public static DriveXboxController xbox;
     public static DriveJoystick leftStick;
@@ -61,10 +60,10 @@ public class Robot extends LoggedRobot {
     public void robotInit() {
         // region Initialize AdvantageKit logging. (DO NOT TOUCH)
         Logger.getInstance().recordMetadata("Project Name", BuildConstants.MAVEN_NAME);
-        Logger.getInstance().recordMetadata("Build Date", BuildConstants.BUILD_DATE);
-        Logger.getInstance().recordMetadata("Git SHA", BuildConstants.GIT_SHA);
-        Logger.getInstance().recordMetadata("Git Date", BuildConstants.GIT_DATE);
-        Logger.getInstance().recordMetadata("Git Branch", BuildConstants.GIT_BRANCH);
+        Logger.getInstance().recordMetadata("Build Date",   BuildConstants.BUILD_DATE);
+        Logger.getInstance().recordMetadata("Git SHA",      BuildConstants.GIT_SHA);
+        Logger.getInstance().recordMetadata("Git Date",     BuildConstants.GIT_DATE);
+        Logger.getInstance().recordMetadata("Git Branch",   BuildConstants.GIT_BRANCH);
 
         //noinspection RedundantSuppression
         switch (BuildConstants.DIRTY) {
@@ -87,32 +86,29 @@ public class Robot extends LoggedRobot {
         Logger.getInstance().start(); // start logging!
         // endregion
 
-        boolean useNormalSticks = true;//!RobotBase.isSimulation(); ||
-                //(DriverStation.isJoystickConnected(0) && DriverStation.isJoystickConnected(1));
-
         // Use a PresetGroup to keep the presets synchronized. We don't want one joystick sensitive
         // and the other one non-sensitive.
         drivePresets = new PresetGroup("Drive Presets", PresetMode.PARALLEL);
 
-        if (useNormalSticks) {
+        if (USE_FLIGHT_STICKS) {
             leftStick = new DriveJoystick(
-                    LEFT_STICK_ID,  // Left stick ID
-                    true,           // Drive X inverted?
-                    true,           // Drive Y inverted?
-                    true,           // Twist Axis Inverted?
-                    DEADBAND,       // Deadband
-                    DRIVE_MODES[0], // Primary Drive Mode
-                    DRIVE_MODES     // Secondary Drive Modes
+                    LEFT_STICK_ID,             // Left stick ID
+                    LEFT_STICK_X_INVERTED,     // Drive X inverted?
+                    LEFT_STICK_Y_INVERTED,     // Drive Y inverted?
+                    LEFT_STICK_TWIST_INVERTED, // Twist Axis Inverted?
+                    DEADBAND,                  // Deadband
+                    DRIVE_MODES[0],            // Primary Drive Mode
+                    DRIVE_MODES                // Secondary Drive Modes
             );
 
             rightStick = new DriveJoystick(
-                    RIGHT_STICK_ID,  // Left stick ID
-                    true,            // Drive X inverted?
-                    true,            // Drive Y inverted?
-                    true,            // Twist Axis Inverted?
-                    DEADBAND,        // Deadband
-                    DRIVE_MODES[0],  // Primary Drive Mode
-                    DRIVE_MODES      // Secondary Drive Modes
+                    RIGHT_STICK_ID,             // Right stick ID
+                    RIGHT_STICK_X_INVERTED,     // Drive X inverted?
+                    RIGHT_STICK_Y_INVERTED,     // Drive Y inverted?
+                    RIGHT_STICK_TWIST_INVERTED, // Twist Axis Inverted?
+                    DEADBAND,                   // Deadband
+                    DRIVE_MODES[0],             // Primary Drive Mode
+                    DRIVE_MODES                 // Secondary Drive Modes
             );
 
             drivePresets.add(leftStick);
@@ -127,7 +123,7 @@ public class Robot extends LoggedRobot {
                 DriveMode.LINEAR_MAP
         );
 
-        if (!useNormalSticks)
+        if (!USE_FLIGHT_STICKS)
             drivePresets.add(xbox); // only add the Xbox Controller if used for driving.
 
         pdh = new PowerDistribution();
@@ -140,9 +136,9 @@ public class Robot extends LoggedRobot {
         CommandScheduler.getInstance().onCommandFinish(c -> logCommandFunction.accept(c, false));
         CommandScheduler.getInstance().onCommandInterrupt(c -> logCommandFunction.accept(c, false));
 
-        // *** IMPORTANT: Call this method at the VERY END of robotInit!!! *** //
+        // *** IMPORTANT: Call these methods at the VERY END of robotInit!!! *** //
         registerAlerts();
-        configureBindings(!useNormalSticks);
+        configureBindings();
         // ******************************************************************* //
     }
 
@@ -167,8 +163,8 @@ public class Robot extends LoggedRobot {
      * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
      * joysticks}.
      */
-    private void configureBindings(boolean xboxOnly) {
-        if (xboxOnly) {
+    private void configureBindings() {
+        if (!USE_FLIGHT_STICKS) {
             IOManager.debug(this, "Xbox-only/Simulation mode detected.");
             Robot.swerve.setDefaultCommand(Robot.swerve.runEnd(
                     () -> Robot.swerve.teleopDrive(xbox),
@@ -191,7 +187,7 @@ public class Robot extends LoggedRobot {
         xbox.povLeft().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(MANUAL_STATION_NAME)));
         xbox.rightBumper().onTrue(Commands.runOnce(() -> CLIMBER_PRESET_GROUP.setPreset(HIGH_CONE_NAME)));
 
-        if (!xboxOnly) {
+        if (USE_FLIGHT_STICKS) {
             leftStick.button(10).onTrue(Commands.runOnce(() -> drivePresets.nextPreset(true)));
             leftStick.button(12).onTrue(swerve.toggleFieldOrientedCommand());
             leftStick.button(11).onTrue(swerve.resetGyroCommand());

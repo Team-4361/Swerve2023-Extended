@@ -4,6 +4,7 @@ import com.revrobotics.CANSparkMaxLowLevel;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.util.io.IOManager;
+import frc.robot.util.io.RobotVerbosity;
 import frc.robot.util.joystick.DriveMode;
 import frc.robot.util.joystick.IDriveMode;
 import frc.robot.util.preset.PresetGroup;
@@ -28,6 +29,17 @@ import static java.util.Map.ofEntries;
  * @since 0.0.0
  */
 public class Constants {
+    public static class Features {
+        /** The {@link TelemetryVerbosity} to use for Swerve Drive. */
+        public static final TelemetryVerbosity SWERVE_VERBOSITY = TelemetryVerbosity.LOW;
+
+        /** The {@link RobotVerbosity} to use for the {@link Robot}. */
+        public static final RobotVerbosity ROBOT_VERBOSITY = RobotVerbosity.DEBUG;
+
+        /** If the regular Joysticks (0 and 1) should be used. */
+        public static final boolean USE_FLIGHT_STICKS = false;
+    }
+
     public static class Control {
         /** The Left Joystick ID (typically 0) */
         public static final int LEFT_STICK_ID = 0;
@@ -36,6 +48,23 @@ public class Constants {
         /** The Xbox Controller ID (typically 2) */
         public static final int XBOX_CONTROLLER_ID = 2;
 
+        /** If the Left Stick Robot-X axis is inverted. */
+        public static final boolean LEFT_STICK_X_INVERTED = true;
+
+        /** If the Left Stick Robot-Y axis is inverted. */
+        public static final boolean LEFT_STICK_Y_INVERTED = true;
+
+        /** If the Left Stick Robot-Twist axis is inverted. */
+        public static final boolean LEFT_STICK_TWIST_INVERTED = true;
+
+        /** If the Right Stick Robot-X axis is inverted. */
+        public static final boolean RIGHT_STICK_X_INVERTED = true;
+
+        /** If the Right Stick Robot-Y axis is inverted. */
+        public static final boolean RIGHT_STICK_Y_INVERTED = true;
+
+        /** If the Right Stick Robot-Twist axis is inverted. */
+        public static final boolean RIGHT_STICK_TWIST_INVERTED = true;
 
         /** The default deadband value to use on Controllers. */
         public static final double DEADBAND = 0.05;

@@ -3,8 +3,6 @@ package frc.robot.util.joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.button.CommandGenericHID;
 import frc.robot.Constants;
-import frc.robot.Robot;
-import frc.robot.util.io.VerbosityLevel;
 import frc.robot.util.math.ExtendedMath;
 import frc.robot.util.preset.IPresetContainer;
 

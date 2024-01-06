@@ -10,7 +10,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static frc.robot.Constants.AlertConfig.ALERT_PERIODIC_MS;
 import static frc.robot.Constants.AlertConfig.STRING_HIGH_PERIODIC_MS;
@@ -88,7 +87,7 @@ public class IOManager {
      * @param text   The {@link String} to broadcast.
      */
     public static void debug(Object sender, String text) {
-        if (Robot.verbosity != VerbosityLevel.DEBUG)
+        if (Robot.verbosity != RobotVerbosity.DEBUG)
             return;
         System.out.println(getLogHeader(sender, "DEBUG") + text);
     }

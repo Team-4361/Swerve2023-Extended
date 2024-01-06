@@ -2,7 +2,6 @@ package frc.robot.util.io;
 
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Robot;
-import frc.robot.util.preset.PresetMap;
 import org.littletonrobotics.junction.Logger;
 
 import java.time.Duration;
@@ -288,7 +287,7 @@ public class Looper {
                 return; // just in-case.
 
             // LOG the POST-CALL performance of the Looper if on DEBUG.
-            if (Robot.verbosity == VerbosityLevel.DEBUG) {
+            if (Robot.verbosity == RobotVerbosity.DEBUG) {
                 long msDiff = nextMillis - currentTimeMillis;
                 Logger.getInstance().recordOutput("Looper/" + getName() + " PERF",
                         (msDiff > 0) ? ("+" + msDiff + " ms") : (msDiff + " ms")
