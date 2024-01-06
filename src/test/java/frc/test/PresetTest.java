@@ -96,7 +96,7 @@ public class PresetTest {
             mainGroup.add(subGroup);
         }
 
-        Assertions.assertTrue(mainGroup.nextPreset(false));
+        Assertions.assertTrue(mainGroup.setPreset(2));
         Assertions.assertEquals((SUB_GROUPS * MAP_COUNT)*2, hits.get());
     }
 }

@@ -151,7 +151,7 @@ public class PresetGroup extends ArrayList<IPresetContainer> implements IPresetC
      */
     @Override
     public boolean nextPreset(boolean loop) {
-        if (index + 1 <= size() - 1) {
+        if (index + 1 < size()) {
             return setPreset(index+1);
         }
         if (loop)

@@ -5,9 +5,6 @@
 
 package frc.robot;
 
-import com.revrobotics.CANSparkMaxLowLevel;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.PowerDistribution;
@@ -19,19 +16,14 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.SwerveSubsystem;
 import frc.robot.util.io.*;
-import frc.robot.util.joystick.DriveHIDBase;
 import frc.robot.util.joystick.DriveJoystick;
 import frc.robot.util.joystick.DriveMode;
 import frc.robot.util.joystick.DriveXboxController;
-import frc.robot.util.motor.FRCSparkMax;
 import frc.robot.util.preset.PresetGroup;
 import frc.robot.util.preset.PresetMode;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
-import swervelib.motors.SparkMaxSwerve;
-import swervelib.parser.SwerveDriveConfiguration;
-import swervelib.parser.SwerveModulePhysicalCharacteristics;
 import swervelib.telemetry.SwerveDriveTelemetry;
 
 import java.io.File;
@@ -39,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import static com.revrobotics.CANSparkMaxLowLevel.MotorType.kBrushless;
 import static frc.robot.Constants.ClimberPresets.*;
 import static frc.robot.Constants.Control.*;
 import static frc.robot.util.io.VerbosityLevel.DEBUG;
@@ -180,14 +171,14 @@ public class Robot extends LoggedRobot {
         if (xboxOnly) {
             IOManager.debug(this, "Xbox-only/Simulation mode detected.");
             Robot.swerve.setDefaultCommand(Robot.swerve.runEnd(
-                    () -> Robot.swerve.drive(xbox, true, false),
-                    () -> Robot.swerve.lock())
+                    () -> Robot.swerve.teleopDrive(xbox),
+                    () -> Robot.swerve.stop())
             );
         } else {
             IOManager.debug(this, "Regular mode detected.");
             Robot.swerve.setDefaultCommand(Robot.swerve.runEnd(
-                    () -> Robot.swerve.drive(leftStick, rightStick, true, false),
-                    () -> Robot.swerve.lock())
+                    () -> Robot.swerve.teleopDrive(leftStick, rightStick),
+                    () -> Robot.swerve.stop())
             );
         }
 
@@ -202,13 +193,13 @@ public class Robot extends LoggedRobot {
 
         if (!xboxOnly) {
             leftStick.button(10).onTrue(Commands.runOnce(() -> drivePresets.nextPreset(true)));
-            leftStick.button(12).onTrue(Commands.runOnce(() -> swerve.teleopFieldOriented = !swerve.teleopFieldOriented));
-            leftStick.button(11).onTrue(Commands.runOnce(() -> swerve.zeroGyro()));
+            leftStick.button(12).onTrue(swerve.toggleFieldOrientedCommand());
+            leftStick.button(11).onTrue(swerve.resetGyroCommand());
             leftStick.trigger().whileTrue(Commands.runEnd(
                     () -> drivePresets.setPreset(2),
                     () -> drivePresets.setPreset(0)
             ));
-            leftStick.button(2).whileTrue(Commands.run(() -> swerve.lock()));
+            leftStick.button(2).whileTrue(swerve.lockWheelCommand());
         }
 
         //Robot.xbox.a().onTrue(Commands.runOnce(() -> AlertManager.vibrate(Robot.xbox.getHID())));

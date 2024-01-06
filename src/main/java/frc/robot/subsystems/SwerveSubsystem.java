@@ -14,36 +14,56 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.trajectory.Trajectory;
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import java.io.File;
-import java.util.List;
-import java.util.Map;
-
+import frc.robot.Robot;
 import frc.robot.util.io.AlertType;
 import frc.robot.util.io.IOManager;
 import frc.robot.util.joystick.DriveHIDBase;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
-import swervelib.parser.SwerveControllerConfiguration;
 import swervelib.parser.SwerveDriveConfiguration;
 import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
+
+import java.io.File;
+import java.util.List;
+import java.util.Map;
 
 import static frc.robot.Constants.AlertConfig.STRING_SWERVE_CONFIG_FAIL;
 import static frc.robot.Constants.DriveConfig.MAX_SPEED_MPS;
 import static frc.robot.Constants.DriveConfig.SWERVE_TELEMETRY;
 
+/**
+ * This {@link SwerveSubsystem} is heavily based upon the YAGSL example and contains special methods designed
+ * to enable easy-to-use driving of the {@link Robot}. Additionally, this class enables manipulation of the
+ * Gyroscope -- as it is heavily attached to the driving system.
+ *
+ * @author Eric Gold
+ * @since 0.0.2
+ * @version 0.0.2
+ */
 public class SwerveSubsystem extends SubsystemBase {
-
     private SwerveDrive swerveDrive;
     private SwerveAutoBuilder autoBuilder = null;
     public boolean teleopFieldOriented = true;
     public boolean teleopClosedLoop = true;
+
+    /** Stops the {@link SwerveDrive} robot from moving. */
+    public void stop() {
+        setChassisSpeeds(new ChassisSpeeds(0, 0, 0));
+    }
+
+    /** @return A {@link Command} which toggles <b>teleoperated</b> FOC */
+    public Command toggleFieldOrientedCommand() {
+        return Commands.run(() -> teleopFieldOriented = !teleopFieldOriented);
+    }
+
+    /** @return A {@link Command} which toggles <b>teleoperated</b> closed loop control. */
+    public Command toggleClosedLoopCommand() {
+        return Commands.run(() -> teleopClosedLoop = !teleopClosedLoop);
+    }
 
     /**
      * Initialize {@link SwerveDrive} with the directory provided.
@@ -68,32 +88,10 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     /**
-     * The primary method for controlling the drivebase.  Takes a {@link Translation2d} and a rotation rate, and
-     * calculates and commands module states accordingly.  Can use either open-loop or closed-loop velocity control for
-     * the wheel velocities.  Also has field- and robot-relative modes, which affect how the translation vector is
-     * used.
-     *
-     * @param translation   {@link Translation2d} that is the commanded linear velocity of the robot, in meters per
-     *                      second. In robot-relative mode, positive x is torwards the bow (front) and positive y is
-     *                      torwards port (left).  In field-relative mode, positive x is away from the alliance wall
-     *                      (field North) and positive y is torwards the left wall when looking through the driver
-     *                      station glass (field West).
-     * @param rotation      Robot angular rate, in radians per second. CCW positive.  Unaffected by field/robot
-     *                      relativity.
-     * @param fieldRelative Drive mode.  True for field-relative, false for robot-relative.
-     */
-    public void drive(Translation2d translation, double rotation, boolean fieldRelative) {
-        swerveDrive.drive(translation,
-                rotation,
-                fieldRelative,
-                false); // Open loop is disabled since it shouldn't be used most of the time.
-    }
-
-    /**
      * Drives the Robot using one Joystick.
      * @param stick The {@link DriveHIDBase} to use.
      */
-    public void drive(DriveHIDBase stick, boolean fieldRelative, boolean isOpenLoop) {
+    public void teleopDrive(DriveHIDBase stick) {
         // Calculate the maximum speed based on XY and Twist.
         double xS = stick.getRobotX() * MAX_SPEED_MPS;
         double yS = stick.getRobotY() * MAX_SPEED_MPS;
@@ -101,10 +99,10 @@ public class SwerveSubsystem extends SubsystemBase {
 
         ChassisSpeeds speeds = new ChassisSpeeds(xS, yS, tS);
 
-        if (fieldRelative)
+        if (teleopFieldOriented)
             speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, swerveDrive.getYaw());
 
-        swerveDrive.drive(speeds, isOpenLoop, new Translation2d());
+        swerveDrive.drive(speeds, teleopClosedLoop, new Translation2d());
     }
 
     /**
@@ -112,7 +110,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param xyStick The {@link DriveHIDBase} to use for directional control.
      * @param twistStick The {@link DriveHIDBase} to use for twisting.
      */
-    public void drive(DriveHIDBase xyStick, DriveHIDBase twistStick, boolean fieldRelative, boolean isOpenLoop) {
+    public void teleopDrive(DriveHIDBase xyStick, DriveHIDBase twistStick) {
         // Calculate the maximum speed based on XY and Twist.
         double xS = xyStick.getRobotX() * MAX_SPEED_MPS;
         double yS = xyStick.getRobotY() * MAX_SPEED_MPS;
@@ -120,128 +118,71 @@ public class SwerveSubsystem extends SubsystemBase {
 
         ChassisSpeeds speeds = new ChassisSpeeds(xS, yS, tS);
 
-        if (fieldRelative)
+        if (teleopFieldOriented)
             speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, swerveDrive.getYaw());
 
-        swerveDrive.drive(speeds, isOpenLoop, new Translation2d());
+        swerveDrive.drive(speeds, teleopClosedLoop, new Translation2d());
     }
 
-    /**
-     * Drive the robot given a chassis field oriented velocity.
-     *
-     * @param velocity Velocity according to the field.
-     */
-    public void driveFieldOriented(ChassisSpeeds velocity) { swerveDrive.driveFieldOriented(velocity); }
-
-    /**
-     * Drive according to the chassis robot oriented velocity.
-     *
-     * @param velocity Robot oriented {@link ChassisSpeeds}
-     */
-    public void drive(ChassisSpeeds velocity) { swerveDrive.drive(velocity); }
-
-    /**
-     * Get the swerve drive kinematics object.
-     *
-     * @return {@link SwerveDriveKinematics} of the swerve drive.
-     */
+    /** @return The {@link SwerveDriveKinematics} of the {@link SwerveDrive}. */
     public SwerveDriveKinematics getKinematics() { return swerveDrive.kinematics; }
 
     /**
-     * Resets odometry to the given pose. Gyro angle and module positions do not need to be reset when calling this
-     * method.  However, if either gyro angle or module position is reset, this must be called in order for odometry to
-     * keep working.
+     * Resets the {@link SwerveDrive} to the given {@link Pose2d}. Gyroscope angle and module positions do
+     * not need to be reset when calling this method.  However, this method <b>MUST</b> be called upon a regular
+     * reset.
      *
-     * @param initialPose The pose to set the odometry to
+     * @param initialPose The {@link Pose2d} to reset the Odometry to.
      */
     public void resetOdometry(Pose2d initialPose) { swerveDrive.resetOdometry(initialPose); }
 
     /**
-     * Gets the current pose (position and rotation) of the robot, as reported by odometry.
-     *
-     * @return The robot's pose
+     * Resets the {@link SwerveDrive} to a blank {@link Pose2d}. Gyroscope angle and module positions do
+     * not need to be reset when calling this method.  However, this method <b>MUST</b> be called upon a regular
+     * reset.
      */
+    public void resetOdometry() { resetOdometry(new Pose2d()); }
+
+    /** @return The current Robot {@link Pose2d} as reported by the Odometry. */
     public Pose2d getPose() { return swerveDrive.getPose(); }
 
     /**
-     * Set chassis speeds with closed-loop velocity control.
+     * Set the raw {@link ChassisSpeeds} with Closed-Loop Velocity Control.
+     * <br></br>
+     * NOTE: This method should <b>ONLY</b> be used for autonomous control. In regular driving, call the
+     * {@link #teleopDrive(DriveHIDBase, DriveHIDBase)} method or equivalent.
      *
      * @param chassisSpeeds Chassis Speeds to set.
      */
     public void setChassisSpeeds(ChassisSpeeds chassisSpeeds) { swerveDrive.setChassisSpeeds(chassisSpeeds); }
 
-    /**
-     * Post the trajectory to the field.
-     *
-     * @param trajectory The trajectory to post.
-     */
+    /*
     public void postTrajectory(Trajectory trajectory) { swerveDrive.postTrajectory(trajectory); }
+    */
 
-    /**
-     * Resets the gyro angle to zero and resets odometry to the same position, but facing toward 0.
-     */
-    public void zeroGyro() { swerveDrive.zeroGyro(); }
+    /** @return A {@link Command} used to reset the {@link SwerveDrive} gyroscope to a heading of zero degrees. */
+    public Command resetGyroCommand() { return Commands.runOnce(() -> swerveDrive.zeroGyro()); }
 
-    /**
-     * Sets the drive motors to brake/coast mode.
-     *
-     * @param brake True to set motors to brake mode, false for coast.
-     */
-    public void setMotorBrake(boolean brake) { swerveDrive.setMotorIdleMode(brake); }
-
-    /**
-     * Gets the current yaw angle of the robot, as reported by the imu.  CCW positive, not wrapped.
-     *
-     * @return The yaw angle
-     */
+    /** @return The {@link Rotation2d} yaw/heading of the robot (CCW positive) */
     public Rotation2d getHeading() { return swerveDrive.getYaw(); }
 
-    /**
-     * Gets the current field-relative velocity (x, y and omega) of the robot
-     *
-     * @return A ChassisSpeeds object of the current field-relative velocity
-     */
+    /** @return The currently used <b>field-oriented</b> {@link ChassisSpeeds} of the {@link SwerveDrive} system. */
     public ChassisSpeeds getFieldVelocity() { return swerveDrive.getFieldVelocity(); }
 
-    /**
-     * Gets the current velocity (x, y and omega) of the robot
-     *
-     * @return A {@link ChassisSpeeds} object of the current velocity
-     */
+    /** @return The currently used <b>robot-oriented</b> {@link ChassisSpeeds} of the {@link SwerveDrive} system. */
     public ChassisSpeeds getRobotVelocity() { return swerveDrive.getRobotVelocity(); }
 
-    /**
-     * Get the {@link SwerveController} in the swerve drive.
-     *
-     * @return {@link SwerveController} from the {@link SwerveDrive}.
-     */
+    /** @return The current {@link SwerveController} of the {@link SwerveDrive} system .*/
     public SwerveController getSwerveController() { return swerveDrive.swerveController; }
 
-    /**
-     * Get the {@link SwerveDriveConfiguration} object.
-     *
-     * @return The {@link SwerveDriveConfiguration} fpr the current drive.
-     */
+    /** @return The current {@link SwerveDriveConfiguration} of the {@link SwerveDrive} system. */
     public SwerveDriveConfiguration getSwerveDriveConfiguration() { return swerveDrive.swerveDriveConfiguration; }
 
-    /**
-     * Lock the swerve drive to prevent it from moving.
-     */
-    public void lock() { swerveDrive.lockPose(); }
+    /** @return A {@link Command} used to angle all {@link SwerveDrive} wheels 90 degrees -- locking the wheels. */
+    public Command lockWheelCommand() { return this.run(() -> swerveDrive.lockPose()); }
 
-    /**
-     * Gets the current pitch angle of the robot, as reported by the imu.
-     *
-     * @return The heading as a {@link Rotation2d} angle
-     */
+    /** @return The current {@link Rotation2d} pitch of the Robot. */
     public Rotation2d getPitch() { return swerveDrive.getPitch(); }
-
-    /**
-     * Add a fake vision reading for testing purposes.
-     */
-    public void addFakeVisionReading() {
-        swerveDrive.addVisionMeasurement(new Pose2d(3, 3, Rotation2d.fromDegrees(65)), Timer.getFPGATimestamp());
-    }
 
     /**
      * Factory to fetch the PathPlanner command to follow the defined path.
@@ -256,7 +197,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param useAllianceColor Automatically transform the path based on alliance color.
      * @return PathPlanner command to follow the given path.
      */
-    public Command creatPathPlannerCommand(String path, PathConstraints constraints, Map<String, Command> eventMap,
+    public Command createPathPlannerCommand(String path, PathConstraints constraints, Map<String, Command> eventMap,
                                            PIDConstants translation, PIDConstants rotation, boolean useAllianceColor) {
         List<PathPlannerTrajectory> pathGroup = PathPlanner.loadPathGroup(path, constraints);
         if (autoBuilder == null) {
